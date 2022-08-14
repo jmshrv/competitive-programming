@@ -1,59 +1,32 @@
+import sys
+
+
 class Solution:
     def findMedianSortedArrays(self, nums1: list[int], nums2: list[int]) -> float:
-        if len(nums1) == 1 and len(nums2) == 1:
-            return (nums1[0] + nums2[0]) / 2
+        # https://leetcode.com/problems/median-of-two-sorted-arrays/discuss/2471/Very-concise-O(log(min(MN)))-iterative-solution-with-detailed-explanation
+        # See commit history for my attempt, this question was very hard 🙃
+        N1, N2 = len(nums1), len(nums2)
 
-        if len(nums1) == 0:
-            return self.median(nums2)
-        if len(nums2) == 0:
-            return self.median(nums1)
+        if N1 < N2:
+            return self.findMedianSortedArrays(nums2, nums1)
 
-        median1 = self.median(nums1)
-        median2 = self.median(nums2)
+        lo, hi = 0, N2 * 2
 
-        if nums2[0] < nums1[0] and nums2[-1] > nums1[-1]:
-            return self.median(nums1)
-        if nums1[0] < nums2[0] and nums1[-1] > nums2[-1]:
-            return self.median(nums2)
+        while lo <= hi:
+            mid2 = (lo + hi) // 2
+            mid1 = N1 + N2 - mid2
 
-        if median1 == median2:
-            return median1
+            L1 = -sys.maxsize - 1 if mid1 == 0 else nums1[int(mid1 - 1) // 2]
+            L2 = -sys.maxsize - 1 if mid2 == 0 else nums2[int(mid2 - 1) // 2]
+            R1 = sys.maxsize if mid1 == N1 * 2 else nums1[int(mid1) // 2]
+            R2 = sys.maxsize if mid2 == N2 * 2 else nums2[int(mid2) // 2]
 
-        if median1 > median2:
-            split1 = (
-                nums1[: len(nums1) // 2 + 1]
-                if len(nums1) % 2 == 1
-                else nums1[: len(nums1) // 2]
-            )
-
-            split2 = (
-                nums2[len(nums2) // 2 + 1 :]
-                if len(nums2) % 2 == 1
-                else nums2[: len(nums2) // 2]
-            )
-
-            return self.findMedianSortedArrays(split1, split2)
-
-        split1 = (
-            nums1[len(nums1) // 2 + 1 :]
-            if len(nums1) % 2 == 1
-            else nums1[len(nums1) // 2 :]
-        )
-
-        split2 = (
-            nums2[: len(nums2) // 2 + 1]
-            if len(nums2) % 2 == 1
-            else nums2[: len(nums2) // 2]
-        )
-
-        return self.findMedianSortedArrays(split1, split2)
-
-    def median(self, nums: list[int]) -> float:
-        length = len(nums)
-        if length % 2 == 1:
-            return nums[length // 2]
-
-        return (nums[length // 2] + nums[length // 2 - 1]) / 2
+            if L1 > R2:
+                lo = mid2 + 1
+            elif L2 > R1:
+                hi = mid2 - 1
+            else:
+                return (max(L1, L2) + min(R1, R2)) / 2
 
 
 if __name__ == "__main__":
@@ -61,6 +34,3 @@ if __name__ == "__main__":
 
     print(solution.findMedianSortedArrays([1, 3], [2]))
     print(solution.findMedianSortedArrays([1, 2], [3, 4]))
-    print(solution.findMedianSortedArrays([], [1]))
-    print(solution.findMedianSortedArrays([1, 2], [-1, 3]))
-    print(solution.findMedianSortedArrays([1, 2], [1, 2, 3]))
