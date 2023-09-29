@@ -1,0 +1,11 @@
+2
+5
+hat headgear
+sunglasses eyewear
+turban headgear
+something headgear
+yetanother headgear
+3
+mask face
+sunglasses face
+makeup face
