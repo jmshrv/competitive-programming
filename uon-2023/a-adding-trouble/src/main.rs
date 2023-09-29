@@ -1,7 +1,7 @@
-use std::io::stdin;
+use std::io;
 
 fn main() {
-    stdin()
+    io::stdin()
         .lines()
         .map(|line| {
             line.unwrap()
