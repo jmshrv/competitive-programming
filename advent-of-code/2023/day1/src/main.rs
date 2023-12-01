@@ -13,15 +13,6 @@ fn num_from_line(line: &str, include_str_nums: bool) -> Option<u32> {
         ("nine", 9),
     ];
 
-    // for str_num in str_nums {
-    //     let str_num_count = str_num.0.chars().count();
-
-    //     for i in 0..(wordless_line.chars().count() - str_num.0.chars().count()) {
-    //         let line_slice = &wordless_line[i..(i + str_num_count)];
-
-    //     }
-    // }
-
     let mut matches = vec![];
 
     if include_str_nums {
