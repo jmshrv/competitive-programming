@@ -29,16 +29,6 @@ fn parse_line(line: &str) -> IResult<&str, (u32, Vec<HashMap<Colour, u32>>)> {
     //  Strip colon
     let (remaining, _) = tag(": ")(remaining)?;
 
-    // let games = remaining.split("; ");
-
-    // for game in games {
-    //     let cubes = game.split(", ");
-
-    //     for cube in cubes {
-    //         let ()
-    //     }
-    // }
-
     let (remaining, hands) =
         separated_list1(tag("; "), take_while1(|c: char| c != ';'))(remaining)?;
 
