@@ -125,13 +125,14 @@ fn main() {
 
     for i in 0..scratch_cards.len() {
         let card = scratch_cards[i];
+        let matches = card.matches().len();
 
         let card_count = card_counts
             .get(&(i + 1))
             .expect("Failed to find card count");
 
         for _ in 0..*card_count {
-            for j in 0..card.matches().len() {
+            for j in 0..matches {
                 let next_card_index = i + j + 2;
 
                 // println!(
