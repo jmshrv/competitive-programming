@@ -1,5 +1,7 @@
 use std::{collections::HashMap, io};
 
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+
 enum Direction {
     Left,
     Right,
@@ -75,9 +77,13 @@ fn traverse_part2_naive(
     let mut steps = 0;
 
     while !positions.iter().all(|position| position.ends_with('Z')) {
-        for position in &mut positions {
-            *position = traverse(destinations, *position, directions, steps);
-        }
+        // for position in &mut positions {
+        //     *position = traverse(destinations, *position, directions, steps);
+        // }
+
+        positions
+            .par_iter_mut()
+            .for_each(|position| *position = traverse(destinations, *position, directions, steps));
 
         steps += 1;
     }
