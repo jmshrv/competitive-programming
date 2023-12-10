@@ -302,16 +302,16 @@ fn main() {
     let max_y = visited.keys().max_by(|x, y| x.1.cmp(&y.1)).unwrap().1;
 
     for y in min_y + 1..=max_y - 1 {
-        let mut parity = false;
+        let mut y_count = 0;
         for x in min_x..=max_x {
             // I realise now I've been indexing by y,x this whole time and haven't realised
             if visited.contains_key(&Index(y, x)) {
                 let pipe = input[y].chars().nth(x).unwrap();
 
                 if matches!(pipe, '|' | 'L' | 'J') {
-                    parity = !parity
+                    y_count += 1;
                 }
-            } else if parity {
+            } else if y_count % 2 == 1 {
                 part2_answer += 1
             }
         }
