@@ -6,29 +6,20 @@ use std::{
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-fn expand_input(input: &Vec<String>) -> Vec<String> {
-    let mut vertically_expanded_input = input
+fn expand_input(input: &Vec<String>) -> (Vec<usize>, Vec<usize>) {
+    let empty_row_indices = input
         .iter()
-        .map(|line| {
-            if line.contains('#') {
-                line.clone()
-            } else {
-                repeat('!').take(line.chars().count()).collect::<String>()
-            }
-        })
-        // .flatten()
+        .enumerate()
+        .filter(|line| !line.1.contains('#'))
+        .map(|line| line.0)
         .collect::<Vec<_>>();
 
-    let vertical_length = vertically_expanded_input
-        .first()
-        .expect("No first line?")
-        .chars()
-        .count();
+    let vertical_length = input.first().expect("No first line?").chars().count();
 
-    let mut empty_columns = vec![];
+    let mut empty_column_indices = vec![];
 
     'columns: for i in 0..vertical_length {
-        for line in &vertically_expanded_input {
+        for line in input {
             let char = line.chars().nth(i).expect("Failed to get column char!");
 
             // If we see a galaxy, skip this column
@@ -37,18 +28,20 @@ fn expand_input(input: &Vec<String>) -> Vec<String> {
             }
         }
 
-        empty_columns.push(i);
+        empty_column_indices.push(i);
     }
 
-    for empty_column in empty_columns {
-        for line in &mut vertically_expanded_input {
-            let mut chars = line.chars().collect::<Vec<_>>();
-            chars[empty_column] = '!';
-            *line = chars.iter().collect();
-        }
-    }
+    (empty_row_indices, empty_column_indices)
 
-    vertically_expanded_input
+    // for empty_column in empty_columns {
+    //     for line in &mut vertically_expanded_input {
+    //         let mut chars = line.chars().collect::<Vec<_>>();
+    //         chars[empty_column] = '!';
+    //         *line = chars.iter().collect();
+    //     }
+    // }
+
+    // vertically_expanded_input
 }
 
 fn find_galaxies(input: &Vec<String>) -> HashMap<usize, (usize, usize)> {
@@ -96,33 +89,27 @@ fn next_steps(input: &Vec<String>, index: (usize, usize)) -> Vec<(usize, usize)>
 }
 
 fn shortest_path_len(
-    input: &Vec<String>,
+    empty_lines: &(Vec<usize>, Vec<usize>),
     from: (usize, usize),
     to: (usize, usize),
     expansion_length: usize,
 ) -> usize {
-    let mut vertical_distance = 0;
-    let mut horizontal_distance = 0;
+    let uncorrected_horizontal_distance = from.1.max(to.1) - from.1.min(to.1);
+    let uncorrected_vertical_distance = from.0.max(to.0) - from.0.min(to.0);
 
-    for i in from.0.min(to.0)..from.0.max(to.0) {
-        let char = input[i].chars().nth(from.1).expect("Failed to get char!");
+    let expanded_rows_travelled = (from.0.min(to.0)..from.0.max(to.0))
+        .filter(|row_index| empty_lines.0.contains(&row_index))
+        .count();
 
-        if char == '!' {
-            vertical_distance += expansion_length;
-        } else {
-            vertical_distance += 1;
-        }
-    }
+    let expanded_columns_travelled = (from.1.min(to.1)..from.1.max(to.1))
+        .filter(|column_index| empty_lines.1.contains(&column_index))
+        .count();
 
-    for i in from.1.min(to.1)..from.1.max(to.1) {
-        let char = input[to.0].chars().nth(i).expect("Failed to get char!");
+    let horizontal_distance = (uncorrected_horizontal_distance - expanded_columns_travelled)
+        + (expanded_columns_travelled * expansion_length);
 
-        if char == '!' {
-            horizontal_distance += expansion_length;
-        } else {
-            horizontal_distance += 1;
-        }
-    }
+    let vertical_distance = (uncorrected_vertical_distance - expanded_rows_travelled)
+        + (expanded_rows_travelled * expansion_length);
 
     horizontal_distance + vertical_distance
 }
@@ -133,9 +120,9 @@ fn main() {
         .filter_map(|res| res.ok())
         .collect::<Vec<_>>();
 
-    let expanded_input = expand_input(&input);
+    let empty_lines = expand_input(&input);
 
-    let galaxies = find_galaxies(&expanded_input);
+    let galaxies = find_galaxies(&input);
 
     // let mut part1_answer = 0;
 
@@ -159,14 +146,14 @@ fn main() {
 
     let part1_answer: usize = pairs
         .par_iter()
-        .map(|pair| shortest_path_len(&expanded_input, *pair.0 .1, *pair.1 .1, 2))
+        .map(|pair| shortest_path_len(&empty_lines, *pair.0 .1, *pair.1 .1, 2))
         .sum();
 
     println!("{part1_answer}");
 
     let part2_answer: usize = pairs
         .par_iter()
-        .map(|pair| shortest_path_len(&expanded_input, *pair.0 .1, *pair.1 .1, 1000000))
+        .map(|pair| shortest_path_len(&empty_lines, *pair.0 .1, *pair.1 .1, 1000000))
         .sum();
 
     println!("{part2_answer}");
