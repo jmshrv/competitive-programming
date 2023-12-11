@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    io,
-};
+use std::{collections::HashSet, io};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -43,13 +40,13 @@ fn expand_input(input: &Vec<String>) -> (Vec<usize>, Vec<usize>) {
     // vertically_expanded_input
 }
 
-fn find_galaxies(input: &Vec<String>) -> HashMap<usize, (usize, usize)> {
-    let mut galaxies = HashMap::new();
+fn find_galaxies(input: &Vec<String>) -> HashSet<(usize, usize)> {
+    let mut galaxies = HashSet::new();
 
     for i in input.iter().enumerate() {
         for j in i.1.char_indices() {
             if j.1 == '#' {
-                galaxies.insert(galaxies.len() + 1, (i.0, j.0));
+                galaxies.insert((i.0, j.0));
             }
         }
     }
@@ -100,7 +97,7 @@ fn main() {
 
     for galaxy_1 in &galaxies {
         for galaxy_2 in &galaxies {
-            if galaxy_1.0 == galaxy_2.0 {
+            if galaxy_1 == galaxy_2 {
                 continue;
             }
 
@@ -116,14 +113,14 @@ fn main() {
 
     let part1_answer: usize = pairs
         .par_iter()
-        .map(|pair| shortest_path_len(&empty_lines, *pair.0 .1, *pair.1 .1, 2))
+        .map(|pair| shortest_path_len(&empty_lines, *pair.0, *pair.1, 2))
         .sum();
 
     println!("{part1_answer}");
 
     let part2_answer: usize = pairs
         .par_iter()
-        .map(|pair| shortest_path_len(&empty_lines, *pair.0 .1, *pair.1 .1, 1000000))
+        .map(|pair| shortest_path_len(&empty_lines, *pair.0, *pair.1, 1000000))
         .sum();
 
     println!("{part2_answer}");
