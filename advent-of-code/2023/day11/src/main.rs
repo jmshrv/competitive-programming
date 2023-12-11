@@ -1,7 +1,6 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     io,
-    iter::repeat,
 };
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -58,36 +57,6 @@ fn find_galaxies(input: &Vec<String>) -> HashMap<usize, (usize, usize)> {
     galaxies
 }
 
-fn next_steps(input: &Vec<String>, index: (usize, usize)) -> Vec<(usize, usize)> {
-    let max_0 = input.len() - 1;
-    let max_1 = input
-        .first()
-        .expect("No first line in input?")
-        .chars()
-        .count()
-        - 1;
-
-    let mut steps = vec![];
-
-    if index.0 != 0 {
-        steps.push((index.0 - 1, index.1));
-    }
-
-    if index.0 != max_0 {
-        steps.push((index.0 + 1, index.1));
-    }
-
-    if index.1 != 0 {
-        steps.push((index.0, index.1 - 1))
-    }
-
-    if index.1 != max_1 {
-        steps.push((index.0, index.1 + 1));
-    }
-
-    steps
-}
-
 fn shortest_path_len(
     empty_lines: &(Vec<usize>, Vec<usize>),
     from: (usize, usize),
@@ -97,6 +66,7 @@ fn shortest_path_len(
     let uncorrected_horizontal_distance = from.1.max(to.1) - from.1.min(to.1);
     let uncorrected_vertical_distance = from.0.max(to.0) - from.0.min(to.0);
 
+    // Weirdly, making empty_lines hashsets actually makes stuff slower?
     let expanded_rows_travelled = (from.0.min(to.0)..from.0.max(to.0))
         .filter(|row_index| empty_lines.0.contains(&row_index))
         .count();
