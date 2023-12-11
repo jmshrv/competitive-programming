@@ -101,37 +101,30 @@ fn shortest_path_len(
     to: (usize, usize),
     expansion_length: usize,
 ) -> usize {
-    // There's some very basic maths here that could get the solution basically instantly, but then
-    // I can't look at my CPU spiking for a minute ;)
+    let mut vertical_distance = 0;
+    let mut horizontal_distance = 0;
 
-    let mut explored = HashMap::from([(from, 0)]);
-    let mut queue = VecDeque::from([(from, 0)]);
+    for i in from.0.min(to.0)..from.0.max(to.0) {
+        let char = input[i].chars().nth(from.1).expect("Failed to get char!");
 
-    while let Some((index, length)) = queue.pop_front() {
-        let char = input[index.0]
-            .chars()
-            .nth(index.1)
-            .expect("Failed to get char!");
-
-        let next_length = if char == '!' {
-            length + expansion_length
+        if char == '!' {
+            vertical_distance += expansion_length;
         } else {
-            length + 1
-        };
-
-        if index == to {
-            return length;
-        }
-
-        for next in next_steps(input, index) {
-            if !explored.contains_key(&next) {
-                explored.insert(next, next_length);
-                queue.push_back((next, next_length));
-            }
+            vertical_distance += 1;
         }
     }
 
-    unreachable!()
+    for i in from.1.min(to.1)..from.1.max(to.1) {
+        let char = input[to.0].chars().nth(i).expect("Failed to get char!");
+
+        if char == '!' {
+            horizontal_distance += expansion_length;
+        } else {
+            horizontal_distance += 1;
+        }
+    }
+
+    horizontal_distance + vertical_distance
 }
 
 fn main() {
