@@ -11,7 +11,7 @@ enum Spring {
     Unknown,
 }
 
-fn parse_line(line: &str) -> (Vec<Spring>, Vec<u64>) {
+fn parse_line(line: &str) -> (Vec<Spring>, Vec<usize>) {
     let (condition_records_str, engineer_count_str) =
         line.split_once(' ').expect("Failed to split line!");
 
@@ -27,62 +27,90 @@ fn parse_line(line: &str) -> (Vec<Spring>, Vec<u64>) {
 
     let engineer_count = engineer_count_str
         .split(',')
-        .map(|c| c.parse::<u64>().expect("Failed to parse engineer number!"))
+        .map(|c| {
+            c.parse::<usize>()
+                .expect("Failed to parse engineer number!")
+        })
         .collect();
 
     (condition_records, engineer_count)
 }
 
-fn valid_arrangements(condition_records: &Vec<Spring>, engineer_count: &Vec<u64>) -> u64 {
-    if let Some(unknown_spring_index) = condition_records
-        .iter()
-        .position(|spring| *spring == Spring::Unknown)
-    {
-        let mut first_operational = condition_records.clone();
-        let mut first_damaged = condition_records.clone();
-
-        first_operational[unknown_spring_index] = Spring::Operational;
-        first_damaged[unknown_spring_index] = Spring::Damaged;
-
-        return valid_arrangements(&first_operational, engineer_count)
-            + valid_arrangements(&first_damaged, engineer_count);
+fn valid_arrangements(
+    condition_records: &Vec<Spring>,
+    engineer_count: &Vec<usize>,
+    cache: &mut HashMap<(Vec<Spring>, Vec<usize>), u64>,
+) -> u64 {
+    if let Some(result) = cache.get(&(condition_records.clone(), engineer_count.clone())) {
+        return *result;
     }
 
-    // Makes stuff a little bit faster - no point checking if there aren't the right amount of
-    // springs
-    if condition_records
-        .iter()
-        .filter(|spring| **spring == Spring::Damaged)
-        .count()
-        != engineer_count.into_iter().sum::<u64>() as usize
-    {
+    if condition_records.is_empty() {
+        if engineer_count.is_empty() {
+            return 1;
+        }
+
         return 0;
     }
 
-    let mut engineer_index = 0;
+    if engineer_count.is_empty() {
+        if condition_records.contains(&Spring::Damaged) {
+            return 0;
+        }
 
-    for (key, group) in &condition_records
-        .iter()
-        .group_by(|element| **element == Spring::Damaged)
-    {
-        if key {
-            if engineer_index >= engineer_count.len() {
-                return 0;
-            }
+        return 1;
+    }
 
-            if group.count() != engineer_count[engineer_index] as usize {
-                return 0;
-            }
+    let mut result = 0;
 
-            engineer_index += 1;
+    let first_condition = condition_records
+        .first()
+        .expect("No first condition somehow?");
+
+    let first_engineer_count = engineer_count
+        .first()
+        .expect("No first engineer count somehow?");
+
+    if first_condition != &Spring::Damaged {
+        result += valid_arrangements(
+            &condition_records
+                .into_iter()
+                .skip(1)
+                .map(|spring| *spring)
+                .collect::<Vec<_>>(),
+            engineer_count,
+            cache,
+        );
+    }
+
+    if first_condition != &Spring::Operational {
+        if *first_engineer_count <= condition_records.len()
+            && !condition_records
+                .iter()
+                .take(*first_engineer_count)
+                .contains(&Spring::Operational)
+            && (*first_engineer_count == condition_records.len()
+                || condition_records[*first_engineer_count] != Spring::Damaged)
+        {
+            let condition_records_split = condition_records
+                .iter()
+                .skip(*first_engineer_count + 1)
+                .map(|spring| *spring)
+                .collect::<Vec<_>>();
+
+            let engineer_count_split = engineer_count
+                .iter()
+                .skip(1)
+                .map(|count| *count)
+                .collect::<Vec<_>>();
+
+            result += valid_arrangements(&condition_records_split, &engineer_count_split, cache);
         }
     }
 
-    if engineer_index != engineer_count.len() {
-        return 0;
-    }
+    cache.insert((condition_records.clone(), engineer_count.clone()), result);
 
-    1
+    result
 }
 
 fn unfold_condition_records(condition_records: &Vec<Spring>) -> Vec<Spring> {
@@ -109,21 +137,21 @@ fn main() {
         .collect::<Vec<_>>();
 
     let part1_answer: u64 = input
-        .iter()
-        .map(|line| valid_arrangements(&line.0, &line.1))
+        .par_iter()
+        .map(|line| valid_arrangements(&line.0, &line.1, &mut HashMap::new()))
         .sum();
 
     println!("{part1_answer}");
 
-    // let part2_input = input
-    //     .par_iter()
-    //     .map(|line| (unfold_condition_records(&line.0), line.1.repeat(5)))
-    //     .collect::<Vec<_>>();
+    let part2_input = input
+        .par_iter()
+        .map(|line| (unfold_condition_records(&line.0), line.1.repeat(5)))
+        .collect::<Vec<_>>();
 
-    // let part2_answer: u64 = part2_input
-    //     .par_iter()
-    //     .map(|line| valid_arrangements(&line.0, &line.1))
-    //     .sum();
+    let part2_answer: u64 = part2_input
+        .par_iter()
+        .map(|line| valid_arrangements(&line.0, &line.1, &mut HashMap::new()))
+        .sum();
 
-    // println!("{part2_answer}");
+    println!("{part2_answer}");
 }
