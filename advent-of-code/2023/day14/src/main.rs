@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io};
 
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn move_up(input: &mut Vec<Vec<char>>, row_index: usize, column_index: usize) {
     let mut recurse = false;
@@ -30,7 +30,14 @@ fn move_up(input: &mut Vec<Vec<char>>, row_index: usize, column_index: usize) {
     }
 }
 
-fn shift_north(input: &mut Vec<Vec<char>>, cache: &mut HashMap<Vec<char>, Vec<char>>) {
+fn shift_north(input: &mut Vec<Vec<char>>, cache: &mut HashMap<Vec<Vec<char>>, Vec<Vec<char>>>) {
+    if let Some(cached) = cache.get(input) {
+        *input = cached.clone();
+        return;
+    }
+
+    let original = input.clone();
+
     let column_length = input.first().expect("No lines!").len();
 
     for column_index in 0..column_length {
@@ -47,23 +54,23 @@ fn shift_north(input: &mut Vec<Vec<char>>, cache: &mut HashMap<Vec<char>, Vec<ch
         //     }
         // }
 
-        let column_before = input
-            .iter()
-            // .enumerate()
-            .map(|line| line[column_index])
-            // .filter(|(_, char)| *char != '.')
-            .collect::<Vec<_>>();
+        // let column_before = input
+        //     .iter()
+        //     // .enumerate()
+        //     .map(|line| line[column_index])
+        //     // .filter(|(_, char)| *char != '.')
+        //     .collect::<Vec<_>>();
 
-        if let Some(cached) = cache.get(&column_before) {
-            // println!("cache hit!");
+        // if let Some(cached) = cache.get(&column_before) {
+        //     // println!("cache hit!");
 
-            input
-                .iter_mut()
-                .zip(cached)
-                .for_each(|(line, cached_char)| line[column_index] = *cached_char);
+        //     input
+        //         .iter_mut()
+        //         .zip(cached)
+        //         .for_each(|(line, cached_char)| line[column_index] = *cached_char);
 
-            continue;
-        }
+        //     continue;
+        // }
 
         for row_index in 0..input.len() {
             let cell = input
@@ -77,13 +84,15 @@ fn shift_north(input: &mut Vec<Vec<char>>, cache: &mut HashMap<Vec<char>, Vec<ch
             }
         }
 
-        let column = input
-            .iter()
-            .map(|line| line[column_index])
-            .collect::<Vec<_>>();
+        // let column = input
+        //     .iter()
+        //     .map(|line| line[column_index])
+        //     .collect::<Vec<_>>();
 
-        cache.insert(column_before, column);
+        // cache.insert(column_before, column);
     }
+
+    cache.insert(original, input.clone());
 }
 
 fn rotate_input(input: &Vec<Vec<char>>) -> Vec<Vec<char>> {
@@ -146,7 +155,8 @@ fn main() {
     //     println!();
     // }
 
-    let progress_bar = ProgressBar::new(1000000000);
+    let progress_bar = ProgressBar::new(1000000000)
+        .with_style(ProgressStyle::with_template("{wide_bar} {pos}/{len} {eta_precise}").unwrap());
 
     for i in 0..1000000000 {
         for _ in 0..4 {
