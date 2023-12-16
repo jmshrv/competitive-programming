@@ -67,7 +67,7 @@ fn charged(
             '/' => (direction_x, direction_y) = reflect_forward_slash(direction_x, direction_y),
             '\\' => (direction_x, direction_y) = reflect_backslash(direction_x, direction_y),
             '|' => {
-                if direction_x != 0 && has_seen_unique {
+                if direction_x != 0 {
                     (direction_x, direction_y) = (0, -1);
 
                     let extra_path = charged(input, x + direction_x, y, 0, 1);
@@ -76,7 +76,7 @@ fn charged(
                 }
             }
             '-' => {
-                if direction_y != 0 && has_seen_unique {
+                if direction_y != 0 {
                     (direction_x, direction_y) = (-1, 0);
 
                     charged_cells.extend(charged(input, x, y + direction_y, 1, 0).iter())
