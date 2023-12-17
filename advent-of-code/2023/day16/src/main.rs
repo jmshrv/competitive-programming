@@ -59,13 +59,13 @@ fn reflect_backslash(direction_x: isize, direction_y: isize) -> (isize, isize) {
     (new_direction_x, new_direction_y)
 }
 
-fn charged(input: &Vec<Vec<char>>) -> HashSet<((isize, isize), (isize, isize))> {
-    let start_x = 0;
-    let start_y = 0;
-
-    let start_direction_x = 1;
-    let start_direction_y = 0;
-
+fn charged(
+    input: &Vec<Vec<char>>,
+    start_x: isize,
+    start_y: isize,
+    start_direction_x: isize,
+    start_direction_y: isize,
+) -> HashSet<((isize, isize), (isize, isize))> {
     let mut explored = HashSet::new();
     let mut queue = VecDeque::new();
 
@@ -122,27 +122,17 @@ fn charged(input: &Vec<Vec<char>>) -> HashSet<((isize, isize), (isize, isize))> 
             };
 
             for next in nexts {
-                if explored.insert(next) {
-                    queue.push_back(next);
+                if input
+                    .get(next.0 .1 as usize)
+                    .and_then(|row| row.get(next.0 .0 as usize))
+                    .is_some()
+                {
+                    if explored.insert(next) {
+                        queue.push_back(next);
+                    }
                 }
             }
         }
-
-        // let visited_pos_only = explored.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
-
-        // for y in 0..input.len() as isize {
-        //     print!("{y}");
-        //     for x in 0..input.first().unwrap().len() as isize {
-        //         if visited_pos_only.contains(&(x, y)) {
-        //             print!("#");
-        //         } else {
-        //             print!("{}", input[y as usize][x as usize]);
-        //         }
-        //     }
-        //     println!();
-        // }
-
-        // println!();
     }
 
     explored
@@ -155,25 +145,44 @@ fn main() {
         .map(|line| line.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    let visited = charged(&input);
-
+    let visited = charged(&input, 0, 0, 1, 0);
     let visited_pos_only = visited.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
 
-    let mut real_part1_answer = 0;
+    let part1_answer = visited_pos_only.len();
+    println!("{part1_answer}");
 
-    for y in 0..input.len() as isize {
-        // print!("{y}");
-        for x in 0..input.first().unwrap().len() as isize {
-            if visited_pos_only.contains(&(x, y)) {
-                real_part1_answer += 1;
+    let y_length = input.len() as isize;
+    let x_length = input.first().expect("No first?").len() as isize;
 
-                // print!("#");
-            } else {
-                // print!(".");
-            }
+    let mut part2_answer = 0;
+
+    for y in 0..y_length {
+        let left = charged(&input, 0, y, 1, 0);
+        let left_visited_only = left.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
+
+        let right = charged(&input, x_length - 1, y, -1, 0);
+        let right_visited_only = right.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
+
+        let max = left_visited_only.len().max(right_visited_only.len());
+
+        if part2_answer < max {
+            part2_answer = max;
         }
-        // println!();
     }
 
-    println!("{real_part1_answer}");
+    for x in 0..x_length {
+        let down = charged(&input, x, 0, 0, 1);
+        let down_visited_only = down.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
+
+        let up = charged(&input, x, y_length - 1, 0, -1);
+        let up_visited_only = up.iter().map(|(x_y, _)| x_y).collect::<HashSet<_>>();
+
+        let max = up_visited_only.len().max(down_visited_only.len());
+
+        if part2_answer < max {
+            part2_answer = max;
+        }
+    }
+
+    println!("{part2_answer}");
 }
