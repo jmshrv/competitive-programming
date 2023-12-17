@@ -1,6 +1,10 @@
-use std::{cmp::Ordering, collections::BinaryHeap, io};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashSet},
+    io,
+};
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 struct State {
     cost: usize,
     position: (usize, usize),
@@ -31,7 +35,7 @@ impl PartialOrd for State {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 enum Direction {
     Start,
     Left,
@@ -41,14 +45,26 @@ enum Direction {
 }
 
 impl Direction {
-    fn valid_next_steps(&self, same_direction_count: usize) -> Vec<Self> {
+    fn valid_next_steps(
+        &self,
+        same_direction_count: usize,
+        min_direction: usize,
+        max_direction: usize,
+    ) -> Vec<Self> {
+        if same_direction_count < min_direction {
+            if *self == Direction::Start {
+                return vec![Self::Left, Self::Right, Self::Up, Self::Down];
+            }
+            return vec![*self];
+        }
+
         let mut base_directions = match self {
             Self::Start => vec![Self::Left, Self::Right, Self::Up, Self::Down],
             Self::Left | Self::Right => vec![Self::Up, Self::Down],
             Self::Up | Self::Down => vec![Self::Left, Self::Right],
         };
 
-        if *self != Self::Start && same_direction_count < 3 {
+        if *self != Self::Start && same_direction_count < max_direction {
             base_directions.push(*self);
         }
 
@@ -66,10 +82,17 @@ impl Direction {
     }
 }
 
-fn shortest_path(input: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usize)) -> usize {
+fn shortest_path(
+    input: &Vec<Vec<char>>,
+    start: (usize, usize),
+    end: (usize, usize),
+    min_direction: usize,
+    max_direction: usize,
+) -> usize {
     let x_length = input.first().expect("No first line!").len();
 
-    let mut dist = vec![vec![usize::MAX; x_length]; input.len()];
+    // let mut dist = vec![vec![usize::MAX; x_length]; input.len()];
+    let mut visited = HashSet::new();
     let mut heap = BinaryHeap::new();
 
     heap.push(State {
@@ -86,38 +109,42 @@ fn shortest_path(input: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usi
         let same_direction_count = state.same_direction_count;
         let direction = state.direction;
 
-        if (x, y) == (5, 1) {
-            println!("hi!");
-        }
+        // if (x, y) == (5, 1) {
+        //     println!("hi!");
+        // }
 
         // Alternatively we could have continued to find all shortest paths
-        if (x, y) == end {
-            let mut last = state.last.unwrap();
+        if (x, y) == end && same_direction_count >= min_direction {
+            // let mut last = state.last.unwrap();
 
-            println!(
-                "({}, {}) {:?} {}",
-                last.position.0, last.position.1, last.direction, last.cost
-            );
+            // println!(
+            //     "({}, {}) {:?} {}",
+            //     last.position.0, last.position.1, last.direction, last.cost
+            // );
 
-            while let Some(ref new_last) = last.last {
-                last = new_last.clone();
+            // while let Some(ref new_last) = last.last {
+            //     last = new_last.clone();
 
-                println!(
-                    "({}, {}) {:?} {}",
-                    last.position.0, last.position.1, last.direction, last.cost
-                );
-            }
+            //     println!(
+            //         "({}, {}) {:?} {}",
+            //         last.position.0, last.position.1, last.direction, last.cost
+            //     );
+            // }
 
             return cost;
         }
 
         // Important as we may have already found a better way
-        if cost > dist[y][x] {
+        // if cost > dist[y][x] {
+        //     continue;
+        // }
+
+        if !visited.insert((state.position, same_direction_count, direction)) {
             continue;
         }
 
         let next_steps = direction
-            .valid_next_steps(same_direction_count)
+            .valid_next_steps(same_direction_count, min_direction, max_direction)
             .into_iter()
             .map(|direction| {
                 (
@@ -149,16 +176,16 @@ fn shortest_path(input: &Vec<Vec<char>>, start: (usize, usize), end: (usize, usi
                     last: Some(Box::new(state.clone())),
                 };
 
-                if (next_x, next_y) == (5, 0) {
-                    println!("hi!");
-                }
+                // if (next_x, next_y) == (5, 0) {
+                //     println!("hi!");
+                // }
 
                 // If so, add it to the frontier and continue
-                if next.cost < dist[next_y as usize][next_x as usize] {
-                    heap.push(next.clone());
-                    // Relaxation, we have now found a better way
-                    dist[next_y as usize][next_x as usize] = next.cost;
-                }
+                // if next.cost < dist[next_y as usize][next_x as usize] {
+                heap.push(next.clone());
+                // Relaxation, we have now found a better way
+                // dist[next_y as usize][next_x as usize] = next.cost;
+                // }
             }
         }
     }
@@ -174,7 +201,10 @@ fn main() {
         .collect::<Vec<_>>();
 
     let x_length = input.first().expect("No first line!").len();
-    let part1_answer = shortest_path(&input, (0, 0), (x_length - 1, input.len() - 1));
 
+    let part1_answer = shortest_path(&input, (0, 0), (x_length - 1, input.len() - 1), 0, 3);
     println!("{part1_answer}");
+
+    let part2_answer = shortest_path(&input, (0, 0), (x_length - 1, input.len() - 1), 4, 10);
+    println!("{part2_answer}");
 }
