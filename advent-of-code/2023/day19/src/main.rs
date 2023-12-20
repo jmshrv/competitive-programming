@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io};
+use std::{collections::HashMap, io, time::Instant};
 
 use nom::{
     branch::alt,
@@ -38,10 +38,39 @@ struct Operation {
     destination: Destination,
 }
 
+impl Operation {
+    fn evaluate(&self, rating: &Rating) -> bool {
+        let left = match self.left_operand {
+            Operand::X => rating.x,
+            Operand::M => rating.m,
+            Operand::A => rating.a,
+            Operand::S => rating.s,
+        };
+
+        match self.operator {
+            Operator::LessThan => left < self.right_operand,
+            Operator::GreaterThan => left > self.right_operand,
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Rule {
     Operation(Operation),
     Destination(Destination),
+}
+
+struct Rating {
+    x: u64,
+    m: u64,
+    a: u64,
+    s: u64,
+}
+
+impl Rating {
+    fn sum(&self) -> u64 {
+        self.x + self.m + self.a + self.s
+    }
 }
 
 fn parse_destination(destination_str: &str) -> IResult<&str, Destination> {
@@ -115,6 +144,65 @@ fn parse_workflow(workflow_str: &str) -> IResult<&str, (&str, Vec<Rule>)> {
     Ok((remaining, (name, rules)))
 }
 
+fn parse_rating(rating_str: &str) -> IResult<&str, Rating> {
+    let (remaining, _) = char('{')(rating_str)?;
+
+    let (remaining, _) = tag("x=")(remaining)?;
+
+    let (remaining, x) = u64(remaining)?;
+
+    let (remaining, _) = tag(",m=")(remaining)?;
+
+    let (remaining, m) = u64(remaining)?;
+
+    let (remaining, _) = tag(",a=")(remaining)?;
+
+    let (remaining, a) = u64(remaining)?;
+
+    let (remaining, _) = tag(",s=")(remaining)?;
+
+    let (remaining, s) = u64(remaining)?;
+
+    let (remaining, _) = char('}')(remaining)?;
+
+    let rating = Rating { x, m, a, s };
+
+    Ok((remaining, rating))
+}
+
+fn eval_rating(
+    rating: &Rating,
+    workflow: &Vec<Rule>,
+    workflows: &HashMap<&str, Vec<Rule>>,
+) -> bool {
+    for rule in workflow {
+        return match rule {
+            Rule::Operation(operation) => {
+                if operation.evaluate(rating) {
+                    match &operation.destination {
+                        Destination::Rejected => false,
+                        Destination::Accepted => true,
+                        Destination::Workflow(workflow_name) => {
+                            eval_rating(rating, &workflows[workflow_name.as_str()], workflows)
+                        }
+                    }
+                } else {
+                    continue;
+                }
+            }
+            Rule::Destination(destination) => match destination {
+                Destination::Rejected => false,
+                Destination::Accepted => true,
+                Destination::Workflow(workflow_name) => {
+                    eval_rating(rating, &workflows[workflow_name.as_str()], workflows)
+                }
+            },
+        };
+    }
+
+    unreachable!()
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
@@ -138,7 +226,16 @@ fn main() {
         })
         .collect::<HashMap<_, _>>();
 
-    for workflow in workflows {
-        println!("{:?}", workflow);
-    }
+    let ratings = ratings_str
+        .iter()
+        .map(|rating_str| parse_rating(rating_str).expect("Failed to parse rating!").1)
+        .collect::<Vec<_>>();
+
+    let part1_answer: u64 = ratings
+        .iter()
+        .filter(|rating| eval_rating(rating, &workflows["in"], &workflows))
+        .map(|accepted_rating| accepted_rating.sum())
+        .sum();
+
+    println!("{part1_answer}");
 }
