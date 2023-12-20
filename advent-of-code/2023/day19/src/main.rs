@@ -209,6 +209,8 @@ fn main() {
         .filter_map(|res| res.ok())
         .collect::<Vec<_>>();
 
+    let start = Instant::now();
+
     let (workflows_str, ratings_str_with_newline) = input.split_at(
         input
             .iter()
@@ -231,11 +233,17 @@ fn main() {
         .map(|rating_str| parse_rating(rating_str).expect("Failed to parse rating!").1)
         .collect::<Vec<_>>();
 
+    let parsing_done = Instant::now();
+
     let part1_answer: u64 = ratings
         .iter()
         .filter(|rating| eval_rating(rating, &workflows["in"], &workflows))
         .map(|accepted_rating| accepted_rating.sum())
         .sum();
 
+    let part1_done = Instant::now();
+
     println!("{part1_answer}");
+    println!("Parsing: {:?}", parsing_done - start);
+    println!("Part 1: {:?}", part1_done - parsing_done);
 }
