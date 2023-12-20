@@ -1,4 +1,9 @@
-use std::{collections::HashMap, io, time::Instant};
+use std::{
+    collections::HashMap,
+    io,
+    ops::{Range, RangeInclusive},
+    time::Instant,
+};
 
 use nom::{
     branch::alt,
@@ -9,7 +14,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Operand {
     X,
     M,
@@ -52,6 +57,13 @@ impl Operation {
             Operator::GreaterThan => left > self.right_operand,
         }
     }
+
+    fn accepted_range(&self) -> Range<u64> {
+        match self.operator {
+            Operator::LessThan => 0..self.right_operand,
+            Operator::GreaterThan => self.right_operand..4000,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -70,6 +82,24 @@ struct Rating {
 impl Rating {
     fn sum(&self) -> u64 {
         self.x + self.m + self.a + self.s
+    }
+}
+
+struct ValidRanges {
+    x: RangeInclusive<u64>,
+    m: RangeInclusive<u64>,
+    a: RangeInclusive<u64>,
+    s: RangeInclusive<u64>,
+}
+
+impl ValidRanges {
+    fn new() -> Self {
+        Self {
+            x: 1..=4000,
+            m: 1..=4000,
+            a: 1..=4000,
+            s: 1..=4000,
+        }
     }
 }
 
@@ -203,6 +233,44 @@ fn eval_rating(
     unreachable!()
 }
 
+fn ranges(mut valid_ranges: ValidRanges, workflow: &Vec<Rule>) -> ValidRanges {
+    for rule in workflow {
+        match rule {
+            Rule::Operation(operation) => {
+                let operand_valid = match operation.left_operand {
+                    Operand::X => &mut valid_ranges.x,
+                    Operand::M => &mut valid_ranges.m,
+                    Operand::A => &mut valid_ranges.a,
+                    Operand::S => &mut valid_ranges.s,
+                };
+
+                let accepted_range = operation.accepted_range();
+
+                match operation.destination {
+                    Destination::Rejected => {
+                        // let min_rejected = operand_valid.start().max(&accepted_range.start);
+                        // let max_rejected = operand_valid.end().min(&accepted_range.end);
+                        // *operand_valid = *min_accepted..=*max_accepted;
+                    }
+                    Destination::Accepted => {
+                        let min_accepted = operand_valid.start().max(&accepted_range.start);
+                        let max_accepted = operand_valid.end().min(&accepted_range.end);
+                        *operand_valid = *min_accepted..=*max_accepted;
+                    }
+                    Destination::Workflow(workflow_name) => {}
+                }
+            }
+            Rule::Destination(destination) => match destination {
+                Destination::Rejected => todo!(),
+                Destination::Accepted => todo!(),
+                Destination::Workflow(_) => todo!(),
+            },
+        }
+    }
+
+    todo!()
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
@@ -242,6 +310,13 @@ fn main() {
         .sum();
 
     let part1_done = Instant::now();
+
+    println!("{part1_answer}");
+
+    // let part2_ratings = (1..=4000).flat_map(|x| {
+    //     (1..=4000)
+    //         .map(move |m| (1..=4000).map(move |a| (1..=4000).map(move |s| Rating { x, m, a, s })))
+    // });
 
     println!("{part1_answer}");
     println!("Parsing: {:?}", parsing_done - start);
