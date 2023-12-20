@@ -16,8 +16,8 @@ fn part2(input: &Vec<&str>) -> u64 {
     let mut map: HashMap<u64, Vec<(&str, u64)>> = HashMap::new();
 
     for step in input {
-        let (identifier, value_str) = step.split_once(['-', '=']).expect("Failed to split step!");
-        let value = value_str.parse::<u64>().unwrap_or(0);
+        let (identifier, focal_length_str) =
+            step.split_once(['-', '=']).expect("Failed to split step!");
         let hash_key = hash(identifier);
 
         if step.ends_with('-') {
@@ -30,15 +30,19 @@ fn part2(input: &Vec<&str>) -> u64 {
                 }
             }
         } else {
+            let focal_length = focal_length_str
+                .parse::<u64>()
+                .expect("Failed to parse focal length!");
+
             map.entry(hash_key)
                 .and_modify(|lens_box| {
                     if let Some(lens) = lens_box.iter_mut().find(|index| index.0 == identifier) {
-                        lens.1 = value;
+                        lens.1 = focal_length;
                     } else {
-                        lens_box.push((identifier, value));
+                        lens_box.push((identifier, focal_length));
                     }
                 })
-                .or_insert(vec![(identifier, value)]);
+                .or_insert(vec![(identifier, focal_length)]);
         }
     }
 
@@ -58,8 +62,7 @@ fn part2(input: &Vec<&str>) -> u64 {
 fn main() {
     let input = io::stdin()
         .lines()
-        .filter_map(|res| res.ok())
-        .next()
+        .find_map(|res| res.ok())
         .expect("No line!");
 
     let split_input = input.split(',').collect::<Vec<_>>();
