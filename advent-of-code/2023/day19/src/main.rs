@@ -246,7 +246,7 @@ fn ranges(mut valid_ranges: ValidRanges, workflow: &Vec<Rule>) -> ValidRanges {
 
                 let accepted_range = operation.accepted_range();
 
-                match operation.destination {
+                match &operation.destination {
                     Destination::Rejected => {
                         // let min_rejected = operand_valid.start().max(&accepted_range.start);
                         // let max_rejected = operand_valid.end().min(&accepted_range.end);
