@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     io,
 };
 
@@ -17,8 +17,10 @@ fn adjacent(
         }
     }
 
-    if input[y][x + 1] != '#' {
-        adj.push((x + 1, y, steps + 1));
+    if x + 1 < input.first().unwrap().len() {
+        if input[y][x + 1] != '#' {
+            adj.push((x + 1, y, steps + 1));
+        }
     }
 
     if y != 0 {
@@ -27,8 +29,10 @@ fn adjacent(
         }
     }
 
-    if input[y + 1][x] != '#' {
-        adj.push((x, y + 1, steps + 1));
+    if y + 1 < input.len() {
+        if input[y + 1][x] != '#' {
+            adj.push((x, y + 1, steps + 1));
+        }
     }
 
     adj
@@ -46,21 +50,20 @@ fn traverse(input: &Vec<Vec<char>>, max_steps: usize) -> usize {
         .expect("Failed to find start x!");
 
     let mut queue = VecDeque::from([(start_x, start_y, 0)]);
-    let mut explored = HashSet::from([(start_x, start_y, 0)]);
+    let mut explored = HashMap::from([((start_x, start_y), 0)]);
 
     while let Some((x, y, steps)) = queue.pop_front() {
-        if steps == max_steps {
-            return queue.len() + 1;
-        }
-
         for edge in adjacent(input, x, y, steps) {
-            if explored.insert(edge) {
+            if explored.insert((edge.0, edge.1), edge.2).is_none() {
                 queue.push_back(edge);
             }
         }
     }
 
-    todo!()
+    explored
+        .values()
+        .filter(|distance| **distance <= 64 && **distance % 2 == 0)
+        .count()
 }
 
 fn main() {
