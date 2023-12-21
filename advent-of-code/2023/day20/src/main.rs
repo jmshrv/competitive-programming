@@ -3,14 +3,24 @@ use std::{
     io,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ModuleType {
     FlipFlop(bool),
     Conjunction(HashMap<String, bool>),
     Broadcaster,
 }
 
-#[derive(Debug)]
+impl ModuleType {
+    fn value(&self) -> bool {
+        match self {
+            ModuleType::FlipFlop(value) => *value,
+            ModuleType::Conjunction(connections) => !connections.values().all(|is_high| *is_high),
+            ModuleType::Broadcaster => panic!("Value called on non flip-flop!"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Module {
     name: String,
     module_type: ModuleType,
@@ -137,7 +147,7 @@ fn send_pulse(
     (new_module_type, new_pulses)
 }
 
-fn press_button(modules: &mut HashMap<&str, Module>) -> (u64, u64) {
+fn press_button(modules: &mut HashMap<&str, Module>, track: Option<String>) -> (u64, u64, bool) {
     let (mut low_pulses, mut high_pulses) = (0, 0);
 
     let mut queue = VecDeque::new();
@@ -152,7 +162,14 @@ fn press_button(modules: &mut HashMap<&str, Module>) -> (u64, u64) {
         queue.push_back(destination);
     }
 
+    let mut track_pulse = false;
+
     while let Some((sent_from, destination, pulse)) = queue.pop_front() {
+        if let Some(ref track) = track {
+            if sent_from == *track && pulse {
+                track_pulse = true;
+            }
+        }
         if pulse {
             high_pulses += 1;
         } else {
@@ -175,7 +192,7 @@ fn press_button(modules: &mut HashMap<&str, Module>) -> (u64, u64) {
         }
     }
 
-    (low_pulses, high_pulses)
+    (low_pulses, high_pulses, track_pulse)
 }
 
 fn main() {
@@ -197,10 +214,12 @@ fn main() {
 
     wire_up_conjunctions(&mut modules);
 
+    let initial_modules = modules.clone();
+
     let (mut part1_low_pulses, mut part1_high_pulses) = (0, 0);
 
     for _ in 0..1000 {
-        let (new_low_pulses, new_high_pulses) = press_button(&mut modules);
+        let (new_low_pulses, new_high_pulses, _) = press_button(&mut modules, None);
         part1_low_pulses += new_low_pulses;
         part1_high_pulses += new_high_pulses;
     }
@@ -208,4 +227,40 @@ fn main() {
     let part1_answer = part1_low_pulses * part1_high_pulses;
 
     println!("{part1_answer}");
+
+    let target_conjunction = initial_modules
+        .values()
+        .find(|module| module.destinations.contains(&"rx".to_string()))
+        .expect("Failed to find target conjunction!");
+
+    let mut values_to_watch = match &target_conjunction.module_type {
+        ModuleType::Conjunction(connections) => connections
+            .iter()
+            .map(|(name, _)| (name.clone(), 0_u64))
+            .collect::<HashMap<_, _>>(),
+        _ => panic!("Target conjunction is not a conjunction!"),
+    };
+
+    println!("{:?}", values_to_watch);
+
+    for value in &mut values_to_watch {
+        let mut value_modules = initial_modules.clone();
+
+        let mut count = 0;
+
+        let mut track_pulse = false;
+
+        while !track_pulse {
+            track_pulse = press_button(&mut value_modules, Some(value.0.clone())).2;
+            count += 1;
+        }
+
+        *value.1 = count;
+    }
+
+    println!("{:?}", values_to_watch);
+
+    let part2_answer: u64 = values_to_watch.values().product();
+
+    println!("{part2_answer}");
 }
