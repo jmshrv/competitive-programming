@@ -38,7 +38,7 @@ fn adjacent(
     adj
 }
 
-fn traverse(input: &Vec<Vec<char>>, max_steps: usize) -> usize {
+fn traverse(input: &Vec<Vec<char>>, max_steps: usize) -> (usize, usize) {
     let start_y = input
         .iter()
         .position(|line| line.contains(&'S'))
@@ -50,20 +50,48 @@ fn traverse(input: &Vec<Vec<char>>, max_steps: usize) -> usize {
         .expect("Failed to find start x!");
 
     let mut queue = VecDeque::from([(start_x, start_y, 0)]);
-    let mut explored = HashMap::from([((start_x, start_y), 0)]);
+    // let mut explored = HashMap::from([((start_x, start_y), 0)]);
+    let mut explored = HashMap::new();
 
     while let Some((x, y, steps)) = queue.pop_front() {
+        if explored.contains_key(&(x, y)) {
+            continue;
+        }
+
+        explored.insert((x, y), steps);
+
         for edge in adjacent(input, x, y, steps) {
-            if explored.insert((edge.0, edge.1), edge.2).is_none() {
+            if !explored.contains_key(&(edge.0, edge.1)) {
                 queue.push_back(edge);
             }
         }
     }
 
-    explored
+    let part1_answer = explored
         .values()
         .filter(|distance| **distance <= 64 && **distance % 2 == 0)
-        .count()
+        .count();
+
+    let even_corners = explored
+        .values()
+        .filter(|v| **v % 2 == 0 && **v > 65)
+        .count();
+    let odd_corners = explored
+        .values()
+        .filter(|v| **v % 2 == 1 && **v > 65)
+        .count();
+
+    let n = 202300;
+
+    let even = n * n;
+    let odd = (n + 1) * (n + 1);
+
+    let part2_answer = odd * explored.values().filter(|v| **v % 2 == 1).count()
+        + even * explored.values().filter(|v| **v % 2 == 0).count()
+        - ((n + 1) * odd_corners)
+        + (n * even_corners);
+
+    (part1_answer, part2_answer)
 }
 
 fn main() {
@@ -73,7 +101,8 @@ fn main() {
         .map(|line| line.chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    let part1_answer = traverse(&input, 64);
+    let (part1_answer, part2_answer) = traverse(&input, 64);
 
     println!("{part1_answer}");
+    println!("{part2_answer}");
 }
