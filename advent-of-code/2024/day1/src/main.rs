@@ -1,4 +1,4 @@
-use std::io;
+use std::{collections::HashMap, io};
 
 fn main() {
     let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = io::stdin()
@@ -15,15 +15,22 @@ fn main() {
 
     let part_one: i64 = left_list
         .iter()
-        .zip(right_list.clone())
+        .zip(right_list.iter())
         .map(|(left, right)| i64::abs(left.max(&right) - left.min(&right)))
         .sum();
 
     println!("{part_one}");
 
+    let counts = right_list
+        .iter()
+        .fold(HashMap::<i64, i64>::new(), |mut acc, right| {
+            *acc.entry(*right).or_insert(0) += 1;
+            acc
+        });
+
     let part_two: i64 = left_list
         .iter()
-        .map(|left| *left * right_list.iter().filter(|right| left == *right).count() as i64)
+        .map(|left| *left * counts.get(left).unwrap_or(&0))
         .sum();
 
     println!("{part_two}");
