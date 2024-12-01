@@ -13,8 +13,5 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-# AoC doesn't want us supplying inputs
-input.txt
-
 # macOS :D
 .DS_Store
