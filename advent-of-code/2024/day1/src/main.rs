@@ -3,7 +3,7 @@ use std::io;
 fn main() {
     let (mut left_list, mut right_list): (Vec<_>, Vec<_>) = io::stdin()
         .lines()
-        .filter_map(|res| res.ok())
+        .map(|line| line.unwrap())
         .collect::<Vec<_>>()
         .iter()
         .map(|line| line.split_once("   ").unwrap())
