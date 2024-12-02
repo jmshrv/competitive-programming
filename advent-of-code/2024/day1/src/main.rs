@@ -16,7 +16,7 @@ fn main() {
     let part_one: i64 = left_list
         .iter()
         .zip(right_list.iter())
-        .map(|(left, right)| i64::abs(left.max(&right) - left.min(&right)))
+        .map(|(left, right)| (left - right).abs())
         .sum();
 
     println!("{part_one}");
