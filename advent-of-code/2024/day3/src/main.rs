@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io, usize};
+use std::{io, usize};
 
 use regex::Regex;
 
