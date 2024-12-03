@@ -1,19 +1,20 @@
-use std::{collections::HashSet, io};
+use std::{collections::HashSet, io, usize};
 
 use regex::Regex;
 
-fn is_enabled(index: usize, dos: &HashSet<usize>, donts: &HashSet<usize>) -> bool {
-    let mut result = true;
+fn is_enabled(index: usize, dos: &[usize], donts: &[usize]) -> bool {
+    let last_do = dos
+        .iter()
+        .take_while(|do_index| index > **do_index)
+        .last()
+        .unwrap_or(&usize::MAX);
+    let last_dont = donts
+        .iter()
+        .take_while(|dont_index| index > **dont_index)
+        .last()
+        .unwrap_or(&0);
 
-    for i in 0..index {
-        if dos.contains(&i) {
-            result = true;
-        } else if donts.contains(&i) {
-            result = false;
-        }
-    }
-
-    result
+    last_do > last_dont
 }
 
 fn main() {
@@ -40,12 +41,12 @@ fn main() {
     let dos = input
         .match_indices("do()")
         .map(|(index, _)| index)
-        .collect::<HashSet<_>>();
+        .collect::<Vec<_>>();
 
     let donts = input
         .match_indices("don't()")
         .map(|(index, _)| index)
-        .collect::<HashSet<_>>();
+        .collect::<Vec<_>>();
 
     let part_two: u32 = multiplications
         .iter()
