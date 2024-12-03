@@ -18,7 +18,7 @@ fn is_enabled(index: usize, dos: &[usize], donts: &[usize]) -> bool {
 }
 
 fn main() {
-    let input: String = io::stdin().lines().flatten().collect();
+    let input = io::read_to_string(io::stdin()).unwrap();
 
     let regex = Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)").unwrap();
 
