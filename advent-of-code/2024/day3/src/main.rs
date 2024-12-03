@@ -3,26 +3,6 @@ use std::{collections::HashSet, io};
 use regex::Regex;
 
 fn is_enabled(index: usize, dos: &HashSet<usize>, donts: &HashSet<usize>) -> bool {
-    // let last_do_index = dos
-    //     .iter()
-    //     .rev()
-    //     .find(|do_index| index >= **do_index)
-    //     .unwrap_or(&0);
-
-    // let last_dont_index = donts
-    //     .iter()
-    //     .rev()
-    //     .find(|dont_index| index >= **dont_index)
-    //     .unwrap_or(&0);
-
-    // println!("{index} {dos:?} {donts:?} {last_do_index} {last_dont_index}");
-
-    // let ans = last_do_index > last_dont_index;
-
-    // println!("{ans}");
-
-    // ans
-
     let mut result = true;
 
     for i in 0..index {
