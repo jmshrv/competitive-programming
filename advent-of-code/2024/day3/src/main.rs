@@ -22,7 +22,7 @@ fn main() {
 
     let regex = Regex::new(r"mul\((\d{1,3}),(\d{1,3})\)").unwrap();
 
-    // Stored in (index, a, b) form
+    // Stored in (index, result) form
     let multiplications = regex
         .captures_iter(&input)
         .map(|captures| {
