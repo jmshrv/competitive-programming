@@ -48,15 +48,24 @@ fn main() {
 
     let mut part_one = 0;
 
-    for y in 0..input.len() {
-        for x in 0..input[y].len() {
-            if input[y][x] == 'X' {
-                for vector in search_vectors {
-                    if search(&input, vector, (y as i32, x as i32)) {
-                        part_one += 1;
-                    }
-                }
-            }
+    let xes = input
+        .iter()
+        .enumerate()
+        .map(|(_, line)| {
+            line.iter()
+                .enumerate()
+                .filter(|(_, char)| **char == 'X')
+                .collect::<Vec<_>>()
+        })
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+
+    for (y, line) in xes.iter().enumerate() {
+        for (x, _) in line {
+            part_one += search_vectors
+                .iter()
+                .filter(|vector| search(&input, **vector, (y as i32, *x as i32)))
+                .count();
         }
     }
 
