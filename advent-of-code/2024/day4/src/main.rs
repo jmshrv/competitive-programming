@@ -78,21 +78,19 @@ fn main() {
 
     let xes = input
         .iter()
-        .enumerate()
-        .map(|(_, line)| {
+        .map(|line| {
             line.iter()
                 .enumerate()
                 .filter(|(_, char)| **char == 'X')
                 .collect::<Vec<_>>()
         })
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+        .filter(|line| !line.is_empty());
 
-    for (y, line) in xes.iter().enumerate() {
+    for (y, line) in xes.enumerate() {
         for (x, _) in line {
             part_one += search_vectors
                 .iter()
-                .filter(|vector| part1_search(&input, **vector, (y as i32, *x as i32)))
+                .filter(|vector| part1_search(&input, **vector, (y as i32, x as i32)))
                 .count();
         }
     }
@@ -101,19 +99,17 @@ fn main() {
 
     let cross_middles = input
         .iter()
-        .enumerate()
-        .map(|(_, line)| {
+        .map(|line| {
             line.iter()
                 .enumerate()
                 .filter(|(_, char)| **char == 'A')
                 .collect::<Vec<_>>()
         })
-        .filter(|line| !line.is_empty())
-        .collect::<Vec<_>>();
+        .filter(|line| !line.is_empty());
 
-    for (y, line) in cross_middles.iter().enumerate() {
+    for (y, line) in cross_middles.enumerate() {
         for (x, _) in line {
-            if part2_search(&input, (y, *x)) {
+            if part2_search(&input, (y, x)) {
                 part_two += 1;
             }
         }
