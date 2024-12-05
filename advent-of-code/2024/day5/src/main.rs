@@ -34,7 +34,13 @@ fn next_rule_to_fix(rules: &[(u32, u32)], update: &[u32]) -> Option<(usize, usiz
 fn fix_invalid_update(rules: &[(u32, u32)], update: &[u32]) -> Vec<u32> {
     let mut fixed_update = update.to_vec();
 
-    while let Some((from_index, to_index)) = next_rule_to_fix(rules, &fixed_update) {
+    let relevant_rules = rules
+        .iter()
+        .filter(|(from, to)| update.contains(from) && update.contains(to))
+        .map(|&(from, to)| (from, to))
+        .collect::<Vec<_>>();
+
+    while let Some((from_index, to_index)) = next_rule_to_fix(&relevant_rules, &fixed_update) {
         fixed_update.swap(from_index, to_index);
     }
 
