@@ -45,14 +45,10 @@ fn part2_search(wordsearch: &Vec<Vec<char>>, position: (usize, usize)) -> bool {
     let bottom_left = wordsearch[position.0 + 1][position.1 - 1];
     let bottom_right = wordsearch[position.0 + 1][position.1 + 1];
 
-    let valid_perms = [
-        ['M', 'S', 'S', 'M'],
-        ['M', 'M', 'S', 'S'],
-        ['S', 'M', 'M', 'S'],
-        ['S', 'S', 'M', 'M'],
-    ];
-
-    valid_perms.contains(&[top_left, top_right, bottom_right, bottom_left])
+    matches!(
+        &[top_left, top_right, bottom_right, bottom_left],
+        ['M', 'S', 'S', 'M'] | ['M', 'M', 'S', 'S'] | ['S', 'M', 'M', 'S'] | ['S', 'S', 'M', 'M']
+    )
 }
 
 fn main() {
