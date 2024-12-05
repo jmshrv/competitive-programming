@@ -1,13 +1,12 @@
 use std::io;
 
 fn part1_search(wordsearch: &Vec<Vec<char>>, vector: (i32, i32), mut position: (i32, i32)) -> bool {
-    let goal = "XMAS";
-    let mut actual = "X".to_string();
+    let goal = ['M', 'A', 'S'];
 
     let vertical_len = wordsearch.len();
     let horizontal_len = wordsearch.first().unwrap().len();
 
-    for _ in 0..goal.chars().count() - 1 {
+    for expected in goal {
         let new_y = position.0 + vector.0;
         let new_x = position.1 + vector.1;
 
@@ -22,10 +21,13 @@ fn part1_search(wordsearch: &Vec<Vec<char>>, vector: (i32, i32), mut position: (
         position = (new_y, new_x);
 
         let new_char = wordsearch[new_y as usize][new_x as usize];
-        actual.push(new_char);
+
+        if new_char != expected {
+            return false;
+        }
     }
 
-    actual == goal
+    true
 }
 
 fn part2_search(wordsearch: &Vec<Vec<char>>, position: (usize, usize)) -> bool {
