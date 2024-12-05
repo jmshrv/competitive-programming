@@ -12,28 +12,23 @@ fn next_rule_to_fix(rules: &[(u32, u32)], update: &[u32]) -> Option<(usize, usiz
                 _ => None,
             }
         })
-        .filter(|(from_index, to_index)| from_index > to_index)
-        .next()
+        .find(|(from_index, to_index)| from_index > to_index)
 }
 
 fn is_update_valid(rules: &[(u32, u32)], update: &[u32]) -> bool {
     next_rule_to_fix(rules, update).is_none()
 }
 
-fn fix_invalid_update(rules: &[(u32, u32)], update: &[u32]) -> Vec<u32> {
-    let mut fixed_update = update.to_vec();
-
+fn fix_invalid_update(rules: &[(u32, u32)], update: &mut [u32]) {
     let relevant_rules = rules
         .iter()
         .filter(|(from, to)| update.contains(from) && update.contains(to))
         .map(|&(from, to)| (from, to))
         .collect::<Vec<_>>();
 
-    while let Some((from_index, to_index)) = next_rule_to_fix(&relevant_rules, &fixed_update) {
-        fixed_update.swap(from_index, to_index);
+    while let Some((from_index, to_index)) = next_rule_to_fix(&relevant_rules, &update) {
+        update.swap(from_index, to_index);
     }
-
-    fixed_update
 }
 
 fn main() {
@@ -47,7 +42,7 @@ fn main() {
         .map(|(a, b)| (a.parse::<u32>().unwrap(), b.parse::<u32>().unwrap()))
         .collect::<Vec<_>>();
 
-    let updates = updates_input
+    let mut updates = updates_input
         .lines()
         .map(|line| {
             line.split(',')
@@ -65,9 +60,12 @@ fn main() {
     println!("{part_one}");
 
     let part_two: u32 = updates
-        .iter()
+        .iter_mut()
         .filter(|update| !is_update_valid(&rules, update))
-        .map(|invalid_update| fix_invalid_update(&rules, invalid_update))
+        .map(|invalid_update| {
+            fix_invalid_update(&rules, invalid_update);
+            invalid_update
+        })
         .map(|valid_update| valid_update[valid_update.len() / 2])
         .sum();
 
