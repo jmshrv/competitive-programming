@@ -1,20 +1,5 @@
 use std::io;
 
-fn is_update_valid(rules: &[(u32, u32)], update: &[u32]) -> bool {
-    rules
-        .iter()
-        .filter_map(|(from, to)| {
-            match (
-                update.iter().position(|&page| page == *from),
-                update.iter().position(|&page| page == *to),
-            ) {
-                (Some(from_index), Some(to_index)) => Some((from_index, to_index)),
-                _ => None,
-            }
-        })
-        .all(|(from_index, to_index)| from_index < to_index)
-}
-
 fn next_rule_to_fix(rules: &[(u32, u32)], update: &[u32]) -> Option<(usize, usize)> {
     rules
         .iter()
@@ -29,6 +14,10 @@ fn next_rule_to_fix(rules: &[(u32, u32)], update: &[u32]) -> Option<(usize, usiz
         })
         .filter(|(from_index, to_index)| from_index > to_index)
         .next()
+}
+
+fn is_update_valid(rules: &[(u32, u32)], update: &[u32]) -> bool {
+    next_rule_to_fix(rules, update).is_none()
 }
 
 fn fix_invalid_update(rules: &[(u32, u32)], update: &[u32]) -> Vec<u32> {
