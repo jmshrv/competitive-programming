@@ -1,6 +1,6 @@
 use std::{collections::HashSet, io};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Cell {
     Guard,
     Empty,
@@ -63,6 +63,48 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
     output
 }
 
+fn loop_count(map: &Vec<Vec<Cell>>) -> usize {
+    let mut loops = 0;
+
+    let start_pos = map
+        .iter()
+        .enumerate()
+        .filter_map(|(y, line)| {
+            line.iter()
+                .enumerate()
+                .find(|(_, cell)| **cell == Cell::Guard)
+                .map(|(x, _)| (y as isize, x as isize))
+        })
+        .next()
+        .unwrap();
+
+    for (y, row) in map.iter().enumerate() {
+        for (x, cell) in row.iter().enumerate() {
+            if *cell == Cell::Empty {
+                let mut new_map = map.clone();
+                let mut guard_pos = start_pos;
+                let mut guard_vector = (-1, 0);
+
+                new_map[y][x] = Cell::Obstacle;
+
+                let mut count = 0;
+
+                while let Some(new_pos) = traverse(&new_map, guard_pos, &mut guard_vector) {
+                    count += 1;
+                    guard_pos = new_pos;
+
+                    if count > 1_000_000 {
+                        loops += 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    loops
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
@@ -82,4 +124,8 @@ fn main() {
     let part_one = positions_visited(&input).len();
 
     println!("{part_one}");
+
+    let part_two = loop_count(&input);
+
+    println!("{part_two}");
 }
