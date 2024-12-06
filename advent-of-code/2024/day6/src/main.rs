@@ -66,8 +66,6 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
 }
 
 fn loop_count(map: &Vec<Vec<Cell>>) -> usize {
-    let mut loops = 0;
-
     let start_pos = map
         .iter()
         .enumerate()
