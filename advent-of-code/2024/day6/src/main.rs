@@ -1,5 +1,7 @@
 use std::{collections::HashSet, io};
 
+use rayon::prelude::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Cell {
     Guard,
@@ -78,31 +80,34 @@ fn loop_count(map: &Vec<Vec<Cell>>) -> usize {
         .next()
         .unwrap();
 
-    for (y, row) in map.iter().enumerate() {
-        for (x, cell) in row.iter().enumerate() {
-            if *cell == Cell::Empty {
-                let mut new_map = map.clone();
-                let mut guard_pos = start_pos;
-                let mut guard_vector = (-1, 0);
+    map.par_iter()
+        .enumerate()
+        .map(|(y, row)| {
+            row.iter()
+                .enumerate()
+                .filter(|(_, cell)| **cell == Cell::Empty)
+                .filter(move |(x, _)| {
+                    let mut new_map = map.clone();
+                    let mut guard_pos = start_pos;
+                    let mut guard_vector = (-1, 0);
 
-                new_map[y][x] = Cell::Obstacle;
+                    new_map[y][*x] = Cell::Obstacle;
 
-                let mut count = 0;
+                    let mut traversed = HashSet::from([(guard_pos, guard_vector)]);
 
-                while let Some(new_pos) = traverse(&new_map, guard_pos, &mut guard_vector) {
-                    count += 1;
-                    guard_pos = new_pos;
+                    while let Some(new_pos) = traverse(&new_map, guard_pos, &mut guard_vector) {
+                        guard_pos = new_pos;
 
-                    if count > 1_000_000 {
-                        loops += 1;
-                        break;
+                        if !traversed.insert((new_pos, guard_vector)) {
+                            return true;
+                        }
                     }
-                }
-            }
-        }
-    }
 
-    loops
+                    return false;
+                })
+                .count()
+        })
+        .sum()
 }
 
 fn main() {
