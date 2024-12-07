@@ -22,25 +22,25 @@ impl Operator {
 }
 
 fn is_equation_valid(expected_answer: u64, equations: &[u64], operators: &[Operator]) -> bool {
+    // If we've gone past the expected answer, no point recursing further
+    if equations[0] > expected_answer {
+        return false;
+    }
+
     if equations.len() == 1 {
         return expected_answer == equations[0];
     }
 
-    let (a, b) = (equations[0], equations[1]);
-
-    for operator in operators {
-        let res = operator.evaluate(a, b);
-
-        if is_equation_valid(
-            expected_answer,
-            &[&[res], &equations[2..]].concat(),
-            operators,
-        ) {
-            return true;
-        }
-    }
-
-    false
+    operators
+        .iter()
+        .map(|operator| operator.evaluate(equations[0], equations[1]))
+        .any(|res| {
+            is_equation_valid(
+                expected_answer,
+                &[&[res], &equations[2..]].concat(),
+                operators,
+            )
+        })
 }
 
 fn main() {
