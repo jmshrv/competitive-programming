@@ -1,0 +1,87 @@
+use std::io;
+
+#[derive(Debug, Clone, Copy)]
+enum Operator {
+    Add,
+    Multiply,
+    Concatenate,
+}
+
+impl Operator {
+    fn evaluate(self, a: u64, b: u64) -> u64 {
+        match self {
+            Operator::Add => a + b,
+            Operator::Multiply => a * b,
+            Operator::Concatenate => {
+                let digits_in_b = ((b as f64).log10() as u32) + 1;
+
+                a * 10_u64.pow(digits_in_b) + b
+            }
+        }
+    }
+}
+
+fn is_equation_valid(expected_answer: u64, equations: &[u64], operators: &[Operator]) -> bool {
+    if equations.len() == 1 {
+        return expected_answer == equations[0];
+    }
+
+    let (a, b) = (equations[0], equations[1]);
+
+    for operator in operators {
+        let res = operator.evaluate(a, b);
+
+        if is_equation_valid(
+            expected_answer,
+            &[&[res], &equations[2..]].concat(),
+            operators,
+        ) {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn main() {
+    let input = io::stdin()
+        .lines()
+        .map(Result::unwrap)
+        .collect::<Vec<_>>()
+        .iter()
+        .map(|line| line.split_once(": ").unwrap())
+        .map(|(answer_str, operators_str)| {
+            (
+                answer_str.parse::<u64>().unwrap(),
+                operators_str
+                    .split(' ')
+                    .map(|operator| operator.parse::<u64>().unwrap())
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let part_one: u64 = input
+        .iter()
+        .filter(|(answer, equations)| {
+            is_equation_valid(*answer, &equations, &[Operator::Add, Operator::Multiply])
+        })
+        .map(|(answer, _)| answer)
+        .sum();
+
+    println!("{part_one}");
+
+    let part_two: u64 = input
+        .iter()
+        .filter(|(answer, equations)| {
+            is_equation_valid(
+                *answer,
+                &equations,
+                &[Operator::Add, Operator::Multiply, Operator::Concatenate],
+            )
+        })
+        .map(|(answer, _)| answer)
+        .sum();
+
+    println!("{part_two}");
+}
