@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io};
+use std::{collections::BTreeSet, io};
 
 use rayon::prelude::*;
 
@@ -57,7 +57,7 @@ fn traverse(
     None
 }
 
-fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
+fn positions_visited(map: &Vec<Vec<Cell>>) -> BTreeSet<(isize, isize)> {
     let mut guard_vector = (-1, 0);
 
     let mut guard_pos = map
@@ -72,7 +72,7 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
         .next()
         .unwrap();
 
-    let mut output = HashSet::from([guard_pos]);
+    let mut output = BTreeSet::from([guard_pos]);
 
     while let Some(new_pos) = traverse(map, guard_pos, &mut guard_vector, None) {
         guard_pos = new_pos;
@@ -82,7 +82,7 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
     output
 }
 
-fn loop_count(map: &Vec<Vec<Cell>>, guard_visited: &HashSet<(isize, isize)>) -> usize {
+fn loop_count(map: &Vec<Vec<Cell>>, guard_visited: &BTreeSet<(isize, isize)>) -> usize {
     let start_pos = map
         .iter()
         .enumerate()
@@ -101,7 +101,7 @@ fn loop_count(map: &Vec<Vec<Cell>>, guard_visited: &HashSet<(isize, isize)>) -> 
             let mut guard_pos = start_pos;
             let mut guard_vector = (-1, 0);
 
-            let mut traversed = HashSet::from([(guard_pos, guard_vector)]);
+            let mut traversed = BTreeSet::from([(guard_pos, guard_vector)]);
 
             while let Some(new_pos) = traverse(&map, guard_pos, &mut guard_vector, Some((*y, *x))) {
                 guard_pos = new_pos;
