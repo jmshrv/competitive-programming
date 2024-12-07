@@ -9,28 +9,45 @@ enum Cell {
     Obstacle,
 }
 
+fn obstacle_rotate(
+    guard_pos: &mut (isize, isize),
+    start_pos: (isize, isize),
+    guard_vector: &mut (isize, isize),
+) {
+    *guard_pos = start_pos;
+
+    *guard_vector = match guard_vector {
+        (1, 0) => (0, -1),
+        (0, 1) => (1, 0),
+        (-1, 0) => (0, 1),
+        (0, -1) => (-1, 0),
+        _ => panic!("Invalid vector {guard_vector:?}"),
+    }
+}
+
 fn traverse(
     map: &Vec<Vec<Cell>>,
     mut guard_pos: (isize, isize),
     guard_vector: &mut (isize, isize),
+    extra_obstacle: Option<(isize, isize)>,
 ) -> Option<(isize, isize)> {
     let start_pos = guard_pos;
 
     guard_pos.0 += guard_vector.0;
     guard_pos.1 += guard_vector.1;
 
+    if let Some(extra_obstacle) = extra_obstacle {
+        if guard_pos.0 == extra_obstacle.0 && guard_pos.1 == extra_obstacle.1 {
+            obstacle_rotate(&mut guard_pos, start_pos, guard_vector);
+
+            return Some(guard_pos);
+        }
+    }
+
     if let Some(row) = map.get(guard_pos.0 as usize) {
         if let Some(cell) = row.get(guard_pos.1 as usize) {
             if *cell == Cell::Obstacle {
-                guard_pos = start_pos;
-
-                *guard_vector = match guard_vector {
-                    (1, 0) => (0, -1),
-                    (0, 1) => (1, 0),
-                    (-1, 0) => (0, 1),
-                    (0, -1) => (-1, 0),
-                    _ => panic!("Invalid vector {guard_vector:?}"),
-                }
+                obstacle_rotate(&mut guard_pos, start_pos, guard_vector);
             }
 
             return Some(guard_pos);
@@ -57,7 +74,7 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
 
     let mut output = HashSet::from([guard_pos]);
 
-    while let Some(new_pos) = traverse(map, guard_pos, &mut guard_vector) {
+    while let Some(new_pos) = traverse(map, guard_pos, &mut guard_vector, None) {
         guard_pos = new_pos;
         output.insert(new_pos);
     }
@@ -65,7 +82,7 @@ fn positions_visited(map: &Vec<Vec<Cell>>) -> HashSet<(isize, isize)> {
     output
 }
 
-fn loop_count(map: &Vec<Vec<Cell>>) -> usize {
+fn loop_count(map: &Vec<Vec<Cell>>, guard_visited: &HashSet<(isize, isize)>) -> usize {
     let start_pos = map
         .iter()
         .enumerate()
@@ -78,34 +95,25 @@ fn loop_count(map: &Vec<Vec<Cell>>) -> usize {
         .next()
         .unwrap();
 
-    map.par_iter()
-        .enumerate()
-        .map(|(y, row)| {
-            row.iter()
-                .enumerate()
-                .filter(|(_, cell)| **cell == Cell::Empty)
-                .filter(move |(x, _)| {
-                    let mut new_map = map.clone();
-                    let mut guard_pos = start_pos;
-                    let mut guard_vector = (-1, 0);
+    guard_visited
+        .par_iter()
+        .filter(|(y, x)| {
+            let mut guard_pos = start_pos;
+            let mut guard_vector = (-1, 0);
 
-                    new_map[y][*x] = Cell::Obstacle;
+            let mut traversed = HashSet::from([(guard_pos, guard_vector)]);
 
-                    let mut traversed = HashSet::from([(guard_pos, guard_vector)]);
+            while let Some(new_pos) = traverse(&map, guard_pos, &mut guard_vector, Some((*y, *x))) {
+                guard_pos = new_pos;
 
-                    while let Some(new_pos) = traverse(&new_map, guard_pos, &mut guard_vector) {
-                        guard_pos = new_pos;
+                if !traversed.insert((new_pos, guard_vector)) {
+                    return true;
+                }
+            }
 
-                        if !traversed.insert((new_pos, guard_vector)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                })
-                .count()
+            return false;
         })
-        .sum()
+        .count()
 }
 
 fn main() {
@@ -124,11 +132,12 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let part_one = positions_visited(&input).len();
+    let guard_visited = positions_visited(&input);
+    let part_one = guard_visited.len();
 
     println!("{part_one}");
 
-    let part_two = loop_count(&input);
+    let part_two = loop_count(&input, &guard_visited);
 
     println!("{part_two}");
 }
