@@ -1,4 +1,4 @@
-use std::{io, iter, usize};
+use std::{io, iter};
 
 use either::Either;
 use itertools::Itertools;
@@ -78,8 +78,12 @@ fn defrag_full(drive: &[Option<usize>]) -> Vec<Option<usize>> {
 
             let empty_range_start = fitting_empty_chunk[0].0;
 
-            for i in empty_range_start..empty_range_start + last_chunk_size {
-                drive_copy[i] = *chunk_id;
+            for block in drive_copy
+                .iter_mut()
+                .skip(empty_range_start)
+                .take(last_chunk_size)
+            {
+                *block = *chunk_id;
             }
         }
     }
