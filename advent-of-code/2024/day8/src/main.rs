@@ -9,6 +9,7 @@ fn antinodes(
     map: &HashMap<char, Vec<(isize, isize)>>,
     map_width: isize,
     map_height: isize,
+    handle_resonance: bool,
 ) -> HashSet<(isize, isize)> {
     let mut output = HashSet::new();
 
@@ -19,24 +20,42 @@ fn antinodes(
                     continue;
                 }
 
-                let vector = (
-                    pos1.0.abs_diff(pos2.0) as isize,
-                    pos1.1.abs_diff(pos2.1) as isize,
-                );
+                let vector = (pos1.0 - pos2.0, pos1.1 - pos2.1);
 
-                if pos1.0 - vector.0 >= 0 && pos1.1 - vector.1 >= 0 {
-                    let antinode = (pos1.0 - vector.0, pos1.1 - vector.1);
+                let mut antinode = (pos1.0 + vector.0, pos1.1 + vector.1);
+                let mut resonant_antinode = (pos1.0 - vector.0, pos1.1 - vector.1);
 
-                    if antinode != *pos2 {
-                        output.insert((pos1.0 - vector.0, pos1.1 - vector.1));
-                    }
-                }
+                loop {
+                    let is_valid_antinode = antinode.0 >= 0
+                        && antinode.1 >= 0
+                        && antinode.0 < map_height
+                        && antinode.1 < map_width
+                        && (handle_resonance || !positions.contains(&antinode));
 
-                if pos1.0 + vector.0 < map_height && pos1.1 + vector.1 < map_width {
-                    let antinode = (pos1.0 + vector.0, pos1.1 + vector.1);
-
-                    if antinode != *pos2 {
+                    if is_valid_antinode {
                         output.insert(antinode);
+                    } else if !handle_resonance {
+                        break;
+                    }
+
+                    if handle_resonance {
+                        if resonant_antinode.0 >= 0
+                            && resonant_antinode.1 >= 0
+                            && resonant_antinode.0 < map_height
+                            && resonant_antinode.1 < map_width
+                        {
+                            output.insert(resonant_antinode);
+                        } else {
+                            break;
+                        }
+
+                        antinode = (antinode.0 + vector.0, antinode.1 + vector.1);
+                        resonant_antinode = (
+                            resonant_antinode.0 - vector.0,
+                            resonant_antinode.1 - vector.1,
+                        );
+                    } else {
+                        break;
                     }
                 }
             }
@@ -77,9 +96,11 @@ fn main() {
         })
         .into_group_map();
 
-    let part_one = antinodes(&map, map_width as isize, map_height as isize);
+    let part_one = antinodes(&map, map_width as isize, map_height as isize, false).len();
 
-    debug_print(&input, &part_one);
+    println!("{}", part_one);
 
-    println!("{}", part_one.len());
+    let part_two = antinodes(&map, map_width as isize, map_height as isize, true).len();
+
+    println!("{part_two}");
 }
