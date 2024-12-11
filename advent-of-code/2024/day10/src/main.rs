@@ -2,7 +2,7 @@ use std::{collections::HashSet, io};
 
 type Position = (usize, usize);
 
-fn positions_at_value(map: &Vec<Vec<u32>>, value: u32) -> impl Iterator<Item = Position> + use<'_> {
+fn positions_at_value(map: &[Vec<u32>], value: u32) -> impl Iterator<Item = Position> + use<'_> {
     map.iter().enumerate().flat_map(move |(y, row)| {
         row.iter()
             .enumerate()
@@ -13,7 +13,7 @@ fn positions_at_value(map: &Vec<Vec<u32>>, value: u32) -> impl Iterator<Item = P
 fn dfs(
     map: &Vec<Vec<u32>>,
     (position_y, position_x): Position,
-    score: usize,
+
     visited: &mut Option<HashSet<Position>>,
 ) -> usize {
     if position_y > map.len() - 1 {
@@ -56,7 +56,7 @@ fn dfs(
 
     neighbours
         .iter()
-        .map(|neighbour| dfs(map, *neighbour, score, visited))
+        .map(|neighbour| dfs(map, *neighbour, visited))
         .sum()
 }
 
@@ -75,14 +75,14 @@ fn main() {
 
     let part_one: usize = trailheads
         .iter()
-        .map(|trailhead| dfs(&input, *trailhead, 0, &mut Some(HashSet::new())))
+        .map(|trailhead| dfs(&input, *trailhead, &mut Some(HashSet::new())))
         .sum();
 
     println!("{part_one}");
 
     let part_two: usize = trailheads
         .iter()
-        .map(|trailhead| dfs(&input, *trailhead, 0, &mut None))
+        .map(|trailhead| dfs(&input, *trailhead, &mut None))
         .sum();
 
     println!("{part_two}");
