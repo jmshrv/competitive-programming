@@ -1,26 +1,56 @@
-use std::io;
+use std::{collections::HashMap, io};
 
-fn blink(stones: &[u64]) -> impl Iterator<Item = u64> + use<'_> {
-    stones.iter().flat_map(|stone| {
-        if *stone == 0 {
-            return vec![1];
-        }
-        let stone_digits = stone.ilog10() + 1;
-        if stone_digits % 2 == 0 {
-            let stone_str = stone.to_string();
+fn blink_count(stone: u64, iter: u64, cache: &mut HashMap<(u64, u64), u64>) -> u64 {
+    if iter == 0 {
+        return 1;
+    }
 
-            let first_half = &stone_str[..stone_digits as usize / 2]
-                .parse::<u64>()
-                .unwrap();
-            let second_half = &stone_str[stone_digits as usize / 2..]
-                .parse::<u64>()
-                .unwrap();
+    if let Some(result) = cache.get(&(stone, iter)) {
+        return *result;
+    }
 
-            return vec![*first_half, *second_half];
-        }
+    if stone == 0 {
+        let result = blink_count(1, iter - 1, cache);
 
-        vec![*stone * 2024]
-    })
+        cache.insert((stone, iter), result);
+
+        return result;
+    }
+
+    let stone_digits = stone.ilog10() + 1;
+
+    if stone_digits % 2 == 0 {
+        let stone_str = stone.to_string();
+
+        let first_half = &stone_str[..stone_digits as usize / 2]
+            .parse::<u64>()
+            .unwrap();
+        let second_half = &stone_str[stone_digits as usize / 2..]
+            .parse::<u64>()
+            .unwrap();
+
+        let result =
+            blink_count(*first_half, iter - 1, cache) + blink_count(*second_half, iter - 1, cache);
+
+        cache.insert((stone, iter), result);
+
+        return result;
+    }
+
+    let result = blink_count(stone * 2024, iter - 1, cache);
+
+    cache.insert((stone, iter), result);
+
+    result
+}
+
+fn blink_all(stones: &[u64], iters: u64) -> u64 {
+    let mut cache = HashMap::new();
+
+    stones
+        .iter()
+        .map(|stone| blink_count(*stone, iters, &mut cache))
+        .sum()
 }
 
 fn main() {
@@ -30,13 +60,11 @@ fn main() {
         .map(|stone_str| stone_str.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
 
-    let mut part_one_stones = input.clone();
-
-    for _ in 0..25 {
-        part_one_stones = blink(&part_one_stones).collect();
-    }
-
-    let part_one = part_one_stones.len();
+    let part_one = blink_all(&input, 25);
 
     println!("{part_one}");
+
+    let part_two = blink_all(&input, 75);
+
+    println!("{part_two}");
 }
