@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, io};
+use std::{collections::HashSet, io};
 
 type Point = (isize, isize);
 
@@ -18,7 +18,7 @@ fn neighbours(map: &[Vec<char>], point: Point) -> impl Iterator<Item = (Point, c
     )
 }
 
-fn flood_fill(map: &[Vec<char>], start: Point, results: &mut BTreeSet<Point>) {
+fn flood_fill(map: &[Vec<char>], start: Point, results: &mut HashSet<Point>) {
     let goal = map[start.0 as usize][start.1 as usize];
 
     results.insert(start);
@@ -33,7 +33,7 @@ fn flood_fill(map: &[Vec<char>], start: Point, results: &mut BTreeSet<Point>) {
     }
 }
 
-fn perimiter(garden: &BTreeSet<Point>, bulk_discount: bool) -> (usize, usize) {
+fn perimiter(garden: &HashSet<Point>, bulk_discount: bool) -> (usize, usize) {
     let mut fences: Vec<Point> = Vec::new();
 
     for point in garden {
@@ -68,10 +68,6 @@ fn perimiter(garden: &BTreeSet<Point>, bulk_discount: bool) -> (usize, usize) {
             .iter()
             .filter(|point| {
                 [
-                    // fences.contains(&(point.0 - 1, point.1 - 1)),
-                    // fences.contains(&(point.0 + 1, point.1 + 1)),
-                    // fences.contains(&(point.0 + 1, point.1 - 1)),
-                    // fences.contains(&(point.0 - 1, point.1 + 1)),
                     fences.contains(&(point.0 + 1, point.1))
                         && fences.contains(&(point.0, point.1 + 1)),
                     fences.contains(&(point.0 + 1, point.1))
@@ -86,7 +82,7 @@ fn perimiter(garden: &BTreeSet<Point>, bulk_discount: bool) -> (usize, usize) {
                 .count()
                     == 1
             })
-            .collect::<BTreeSet<_>>();
+            .collect::<HashSet<_>>();
 
         let area = garden
             .iter()
@@ -114,14 +110,14 @@ fn main() {
                 .enumerate()
                 .map(move |(x, _)| (y as isize, x as isize))
         })
-        .collect::<BTreeSet<_>>();
+        .collect::<HashSet<_>>();
 
     let mut gardens = Vec::new();
 
     while !search_space.is_empty() {
-        let mut garden = BTreeSet::new();
+        let mut garden = HashSet::new();
 
-        flood_fill(&input, *search_space.first().unwrap(), &mut garden);
+        flood_fill(&input, *search_space.iter().next().unwrap(), &mut garden);
 
         for cell in &garden {
             search_space.remove(cell);
@@ -156,14 +152,18 @@ fn main() {
                 .enumerate()
                 .map(move |(x, _)| (y as isize, x as isize))
         })
-        .collect::<BTreeSet<_>>();
+        .collect::<HashSet<_>>();
 
     let mut gardens = Vec::new();
 
     while !search_space.is_empty() {
-        let mut garden = BTreeSet::new();
+        let mut garden = HashSet::new();
 
-        flood_fill(&scaled_input, *search_space.first().unwrap(), &mut garden);
+        flood_fill(
+            &scaled_input,
+            *search_space.iter().next().unwrap(),
+            &mut garden,
+        );
 
         for cell in &garden {
             search_space.remove(cell);
