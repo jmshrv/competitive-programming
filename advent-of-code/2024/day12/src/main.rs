@@ -10,12 +10,11 @@ fn neighbours(map: &[Vec<char>], point: Point) -> impl Iterator<Item = (Point, c
         (point.0, point.1.wrapping_add(1)),
     ]
     .into_iter()
-    .filter_map(
-        |neighbour| match map.get(neighbour.0 as usize)?.get(neighbour.1 as usize) {
-            Some(neighbour_value) => Some((neighbour, *neighbour_value)),
-            None => None,
-        },
-    )
+    .filter_map(|neighbour| {
+        map.get(neighbour.0 as usize)?
+            .get(neighbour.1 as usize)
+            .map(|neighbour_value| (neighbour, *neighbour_value))
+    })
 }
 
 fn flood_fill(map: &[Vec<char>], start: Point, results: &mut HashSet<Point>) {
