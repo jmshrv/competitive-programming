@@ -1,4 +1,4 @@
-use std::io;
+use std::{collections::HashSet, io};
 
 #[derive(Debug, Clone, Copy)]
 struct Robot {
@@ -47,6 +47,24 @@ fn parse_robot(line: &str) -> Option<Robot> {
     })
 }
 
+fn debug_print(robots: &[Robot], map_width: i64, map_height: i64) {
+    let positions = robots
+        .iter()
+        .map(|robot| robot.position)
+        .collect::<HashSet<_>>();
+
+    for y in 0..map_height {
+        for x in 0..map_width {
+            if positions.contains(&(x, y)) {
+                print!("B");
+            } else {
+                print!(".")
+            }
+        }
+        println!();
+    }
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
@@ -54,8 +72,8 @@ fn main() {
         .map(|line| parse_robot(&line).unwrap())
         .collect::<Vec<_>>();
 
-    let part_one_map_width = 101;
-    let part_one_map_height = 103;
+    let map_width = 101;
+    let map_height = 103;
 
     let part_one_robots = input
         .iter()
@@ -63,7 +81,7 @@ fn main() {
             let mut new_robot = *robot;
 
             for _ in 0..100 {
-                new_robot = new_robot.step(part_one_map_width, part_one_map_height);
+                new_robot = new_robot.step(map_width, map_height);
             }
 
             new_robot
@@ -72,34 +90,58 @@ fn main() {
 
     let part_one_top_left = part_one_robots
         .iter()
-        .filter(|robot| {
-            robot.position.0 < part_one_map_width / 2 && robot.position.1 < part_one_map_height / 2
-        })
+        .filter(|robot| robot.position.0 < map_width / 2 && robot.position.1 < map_height / 2)
         .count();
 
     let part_one_bottom_left = part_one_robots
         .iter()
-        .filter(|robot| {
-            robot.position.0 < part_one_map_width / 2 && robot.position.1 > part_one_map_height / 2
-        })
+        .filter(|robot| robot.position.0 < map_width / 2 && robot.position.1 > map_height / 2)
         .count();
 
     let part_one_top_right = part_one_robots
         .iter()
-        .filter(|robot| {
-            robot.position.0 > part_one_map_width / 2 && robot.position.1 < part_one_map_height / 2
-        })
+        .filter(|robot| robot.position.0 > map_width / 2 && robot.position.1 < map_height / 2)
         .count();
 
     let part_one_bottom_right = part_one_robots
         .iter()
-        .filter(|robot| {
-            robot.position.0 > part_one_map_width / 2 && robot.position.1 > part_one_map_height / 2
-        })
+        .filter(|robot| robot.position.0 > map_width / 2 && robot.position.1 > map_height / 2)
         .count();
 
     let part_one =
         part_one_bottom_left * part_one_bottom_right * part_one_top_left * part_one_top_right;
 
     println!("{part_one}");
+
+    let mut working_copy = input.clone();
+    let mut seconds = 0;
+
+    loop {
+        working_copy
+            .iter_mut()
+            .for_each(|robot| *robot = robot.step(map_width, map_height));
+
+        seconds += 1;
+
+        let working_copy_map = working_copy
+            .iter()
+            .map(|robot| robot.position)
+            .collect::<HashSet<_>>();
+
+        if working_copy_map.iter().any(|pos| {
+            working_copy_map.contains(&(pos.0 + 1, pos.1))
+                && working_copy_map.contains(&(pos.0 + 2, pos.1))
+                && working_copy_map.contains(&(pos.0 + 3, pos.1))
+                && working_copy_map.contains(&(pos.0 + 4, pos.1))
+                && working_copy_map.contains(&(pos.0 + 5, pos.1))
+                && working_copy_map.contains(&(pos.0 + 6, pos.1))
+                && working_copy_map.contains(&(pos.0 + 7, pos.1))
+                && working_copy_map.contains(&(pos.0 + 8, pos.1))
+                && working_copy_map.contains(&(pos.0 + 9, pos.1))
+                && working_copy_map.contains(&(pos.0 + 10, pos.1))
+        }) {
+            println!("{seconds}");
+            return;
+        }
+    }
 }
