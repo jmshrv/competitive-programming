@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, collections::BinaryHeap, io};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashSet},
+    io,
+};
 
 use lazy_regex::regex;
 
@@ -14,11 +18,31 @@ struct State {
     tokens: u64,
     x: u64,
     y: u64,
+    priority: u64,
+}
+
+impl State {
+    fn new(tokens: u64, x: u64, y: u64, goal: (u64, u64)) -> Self {
+        Self {
+            tokens,
+            x,
+            y,
+            priority: tokens + x.abs_diff(goal.0) + y.abs_diff(goal.1),
+        }
+    }
+
+    // fn distance(&self, goal: (u64, u64)) -> u64 {
+    //     self.x.abs_diff(goal.0) + self.y.abs_diff(goal.1)
+    // }
 }
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        other.tokens.cmp(&self.tokens)
+        // other
+        //     .distance((self.x, self.y))
+        //     .cmp(&self.distance((other.x, other.y)))
+        // other.tokens.cmp(&self.tokens)
+        other.priority.cmp(&self.priority)
     }
 }
 
@@ -56,15 +80,17 @@ fn parse_statement(input: &str) -> Option<Statement> {
 }
 
 fn button_presses(statement: &Statement) -> Option<u64> {
-    let mut queue = BinaryHeap::from([State {
-        tokens: 0,
-        x: 0,
-        y: 0,
-    }]);
+    let mut queue = BinaryHeap::from([State::new(0, 0, 0, statement.prize)]);
+
+    let mut visited = HashSet::new();
 
     while let Some(node) = queue.pop() {
         if node.x == statement.prize.0 && node.y == statement.prize.1 {
             return Some(node.tokens);
+        }
+
+        if !visited.insert((node.x, node.y)) {
+            continue;
         }
 
         let a_next = (node.x + statement.button_a.0, node.y + statement.button_a.1);
@@ -74,19 +100,31 @@ fn button_presses(statement: &Statement) -> Option<u64> {
         // println!("{b_next:?}");
 
         if a_next.0 <= statement.prize.0 && a_next.1 <= statement.prize.1 {
-            queue.push(State {
-                tokens: node.tokens + 3,
-                x: a_next.0,
-                y: a_next.1,
-            });
+            queue.push(State::new(
+                node.tokens + 3,
+                a_next.0,
+                a_next.1,
+                statement.prize,
+            ));
+            // queue.push(State {
+            //     tokens: node.tokens + 3,
+            //     x: a_next.0,
+            //     y: a_next.1,
+            // });
         }
 
         if b_next.0 <= statement.prize.0 && b_next.1 <= statement.prize.1 {
-            queue.push(State {
-                tokens: node.tokens + 1,
-                x: b_next.0,
-                y: b_next.0,
-            });
+            queue.push(State::new(
+                node.tokens + 1,
+                b_next.0,
+                b_next.1,
+                statement.prize,
+            ));
+            // queue.push(State {
+            //     tokens: node.tokens + 1,
+            //     x: b_next.0,
+            //     y: b_next.0,
+            // });
         }
     }
 
@@ -100,7 +138,10 @@ fn main() {
         .map(|statement| parse_statement(statement).unwrap())
         .collect::<Vec<_>>();
 
-    for statement in input {
-        println!("{:?}", button_presses(&statement));
-    }
+    let part_one: u64 = input
+        .iter()
+        .filter_map(|statement| button_presses(statement))
+        .sum();
+
+    println!("{part_one}");
 }
