@@ -1,55 +1,13 @@
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashSet},
-    io,
-};
+use std::io;
 
 use lazy_regex::regex;
+use nalgebra::{Matrix2, Vector2};
 
 #[derive(Debug)]
 struct Statement {
     button_a: (u64, u64),
     button_b: (u64, u64),
     prize: (u64, u64),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct State {
-    tokens: u64,
-    x: u64,
-    y: u64,
-    priority: u64,
-}
-
-impl State {
-    fn new(tokens: u64, x: u64, y: u64, goal: (u64, u64)) -> Self {
-        Self {
-            tokens,
-            x,
-            y,
-            priority: tokens + x.abs_diff(goal.0) + y.abs_diff(goal.1),
-        }
-    }
-
-    // fn distance(&self, goal: (u64, u64)) -> u64 {
-    //     self.x.abs_diff(goal.0) + self.y.abs_diff(goal.1)
-    // }
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // other
-        //     .distance((self.x, self.y))
-        //     .cmp(&self.distance((other.x, other.y)))
-        // other.tokens.cmp(&self.tokens)
-        other.priority.cmp(&self.priority)
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 fn parse_statement(input: &str) -> Option<Statement> {
@@ -80,55 +38,27 @@ fn parse_statement(input: &str) -> Option<Statement> {
 }
 
 fn button_presses(statement: &Statement) -> Option<u64> {
-    let mut queue = BinaryHeap::from([State::new(0, 0, 0, statement.prize)]);
+    let problems = Matrix2::new(
+        statement.button_a.0 as f64,
+        statement.button_b.0 as f64,
+        statement.button_a.1 as f64,
+        statement.button_b.1 as f64,
+    );
 
-    let mut visited = HashSet::new();
+    let goal = Vector2::new(statement.prize.0 as f64, statement.prize.1 as f64);
+    let decomp = problems.lu();
 
-    while let Some(node) = queue.pop() {
-        if node.x == statement.prize.0 && node.y == statement.prize.1 {
-            return Some(node.tokens);
-        }
+    let result = decomp.solve(&goal)?;
 
-        if !visited.insert((node.x, node.y)) {
-            continue;
-        }
+    let x_remainder = result.x.fract();
+    let y_remainder = result.y.fract();
 
-        let a_next = (node.x + statement.button_a.0, node.y + statement.button_a.1);
-        let b_next = (node.x + statement.button_b.0, node.y + statement.button_b.1);
-
-        // println!("{a_next:?}");
-        // println!("{b_next:?}");
-
-        if a_next.0 <= statement.prize.0 && a_next.1 <= statement.prize.1 {
-            queue.push(State::new(
-                node.tokens + 3,
-                a_next.0,
-                a_next.1,
-                statement.prize,
-            ));
-            // queue.push(State {
-            //     tokens: node.tokens + 3,
-            //     x: a_next.0,
-            //     y: a_next.1,
-            // });
-        }
-
-        if b_next.0 <= statement.prize.0 && b_next.1 <= statement.prize.1 {
-            queue.push(State::new(
-                node.tokens + 1,
-                b_next.0,
-                b_next.1,
-                statement.prize,
-            ));
-            // queue.push(State {
-            //     tokens: node.tokens + 1,
-            //     x: b_next.0,
-            //     y: b_next.0,
-            // });
-        }
+    if (x_remainder > 0.001 && x_remainder < 0.999) || (y_remainder > 0.001 && y_remainder < 0.999)
+    {
+        return None;
     }
 
-    None
+    Some(result.x.round() as u64 * 3 + result.y.round() as u64)
 }
 
 fn main() {
@@ -138,10 +68,22 @@ fn main() {
         .map(|statement| parse_statement(statement).unwrap())
         .collect::<Vec<_>>();
 
-    let part_one: u64 = input
-        .iter()
-        .filter_map(|statement| button_presses(statement))
-        .sum();
+    let part_one: u64 = input.iter().filter_map(button_presses).sum();
 
     println!("{part_one}");
+
+    let part_two: u64 = input
+        .iter()
+        .map(|statement| Statement {
+            button_a: statement.button_a,
+            button_b: statement.button_b,
+            prize: (
+                statement.prize.0 + 10000000000000,
+                statement.prize.1 + 10000000000000,
+            ),
+        })
+        .filter_map(|statement| button_presses(&statement))
+        .sum();
+
+    println!("{part_two}");
 }
