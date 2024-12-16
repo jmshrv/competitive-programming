@@ -6,9 +6,11 @@ enum Tile {
     Empty,
     Robot,
     Wall,
+    BoxLeft,
+    BoxRight,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Up,
     Down,
@@ -47,15 +49,38 @@ fn parse_map(map_str: &str) -> Vec<Vec<Tile>> {
 fn parse_directions(directions_str: &str) -> Vec<Direction> {
     directions_str
         .chars()
-        .filter(|char| *char != '\n')
-        .map(|char| match char {
-            '^' => Direction::Up,
-            'v' => Direction::Down,
-            '<' => Direction::Left,
-            '>' => Direction::Right,
-            _ => panic!("Invalid direction {char}!"),
+        .filter_map(|char| match char {
+            '^' => Some(Direction::Up),
+            'v' => Some(Direction::Down),
+            '<' => Some(Direction::Left),
+            '>' => Some(Direction::Right),
+            _ => None,
         })
         .collect()
+}
+
+fn is_free(map: &[Vec<Tile>], tile_pos: (isize, isize), direction: Direction) -> bool {
+    match map[tile_pos.0 as usize][tile_pos.1 as usize] {
+        Tile::Empty => true,
+        Tile::Wall => false,
+        Tile::BoxLeft => {
+            is_free(map, direction.vector(tile_pos), direction)
+                && is_free(
+                    map,
+                    direction.vector(Direction::Right.vector(tile_pos)),
+                    direction,
+                )
+        }
+        Tile::BoxRight => {
+            is_free(map, direction.vector(tile_pos), direction)
+                && is_free(
+                    map,
+                    direction.vector(Direction::Left.vector(tile_pos)),
+                    direction,
+                )
+        }
+        _ => is_free(map, direction.vector(tile_pos), direction),
+    }
 }
 
 fn try_move(
@@ -63,26 +88,48 @@ fn try_move(
     tile_pos: (isize, isize),
     direction: Direction,
 ) -> Option<(isize, isize)> {
-    // match map.get_mut(&tile_pos) {
-    //     Some(tile) => match tile {
-    //         Tile::Box => try_move(map, direction.vector(tile_pos), direction),
-    //         Tile::Robot => try_move(map, direction.vector(tile_pos), direction),
-    //         Tile::Wall => (0, 0), // Walls are immovable
-    //     },
-    //     None => direction.vector(tile_pos),
-    // }
+    let tile = map[tile_pos.0 as usize][tile_pos.1 as usize];
 
-    if tile_pos.0 < 0
-        || tile_pos.0 > (map.len() - 1) as isize
-        || tile_pos.1 < 0
-        || tile_pos.1 > (map[tile_pos.0 as usize].len() - 1) as isize
-    {
-        return None;
-    }
-
-    match map[tile_pos.0 as usize][tile_pos.1 as usize] {
+    match tile {
         Tile::Empty => Some(tile_pos),
         Tile::Wall => None,
+
+        Tile::BoxLeft | Tile::BoxRight
+            if direction == Direction::Up || direction == Direction::Down =>
+        {
+            let other_box_pos = if tile == Tile::BoxLeft {
+                Direction::Right.vector(tile_pos)
+            } else {
+                Direction::Left.vector(tile_pos)
+            };
+
+            let new_pos = direction.vector(tile_pos);
+            let other_new_pos = direction.vector(other_box_pos);
+
+            if !is_free(map, tile_pos, direction) {
+                return None;
+            }
+
+            if try_move(map, new_pos, direction).is_some()
+                && try_move(map, other_new_pos, direction).is_some()
+            {
+                map[tile_pos.0 as usize][tile_pos.1 as usize] = Tile::Empty;
+                map[other_box_pos.0 as usize][other_box_pos.1 as usize] = Tile::Empty;
+
+                map[new_pos.0 as usize][new_pos.1 as usize] = tile;
+                map[other_new_pos.0 as usize][other_new_pos.1 as usize] = if tile == Tile::BoxLeft {
+                    Tile::BoxRight
+                } else {
+                    Tile::BoxLeft
+                };
+
+                return Some(new_pos);
+            }
+
+            None
+        }
+
+        // Boxes and robot
         tile => {
             let new_pos = direction.vector(tile_pos);
             if try_move(map, new_pos, direction).is_some() {
@@ -106,6 +153,8 @@ fn debug_print(map: &[Vec<Tile>]) {
                 Tile::Empty => print!("."),
                 Tile::Robot => print!("@"),
                 Tile::Wall => print!("#"),
+                Tile::BoxLeft => print!("["),
+                Tile::BoxRight => print!("]"),
             }
         }
 
@@ -119,6 +168,22 @@ fn main() {
     let (map_str, directions_str) = input.split_once("\n\n").unwrap();
 
     let mut map = parse_map(map_str);
+
+    let mut extended_map = map
+        .iter()
+        .map(|row| {
+            row.iter()
+                .flat_map(|cell| match cell {
+                    Tile::Box => [Tile::BoxLeft, Tile::BoxRight],
+                    Tile::Empty => [Tile::Empty, Tile::Empty],
+                    Tile::Robot => [Tile::Robot, Tile::Empty],
+                    Tile::Wall => [Tile::Wall, Tile::Wall],
+                    _ => panic!("Unexpandable cell {cell:?}!"),
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
     let directions = parse_directions(directions_str);
 
     let mut robot_pos = map
@@ -131,8 +196,8 @@ fn main() {
         })
         .unwrap();
 
-    for direction in directions {
-        if let Some(new_pos) = try_move(&mut map, robot_pos, direction) {
+    for direction in &directions {
+        if let Some(new_pos) = try_move(&mut map, robot_pos, *direction) {
             robot_pos = new_pos;
         }
     }
@@ -150,4 +215,34 @@ fn main() {
         .sum();
 
     println!("{part_one}");
+
+    let mut robot_pos = extended_map
+        .iter()
+        .enumerate()
+        .find_map(|(y, row)| {
+            row.iter()
+                .position(|x| *x == Tile::Robot)
+                .map(|x| (y as isize, x as isize))
+        })
+        .unwrap();
+
+    for direction in &directions {
+        if let Some(new_pos) = try_move(&mut extended_map, robot_pos, *direction) {
+            robot_pos = new_pos;
+        }
+    }
+
+    let part_two: usize = extended_map
+        .iter()
+        .enumerate()
+        .flat_map(|(y, row)| {
+            row.iter()
+                .enumerate()
+                .filter(|(_, tile)| **tile == Tile::BoxLeft)
+                .map(move |(x, _)| (y, x))
+        })
+        .map(|(y, x)| y * 100 + x)
+        .sum();
+
+    println!("{part_two}");
 }
