@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashSet},
-    io,
+    io, u64,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -40,11 +40,12 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Node {
     direction: Direction,
     position: (isize, isize),
     cost: u64,
+    distance: u64,
 }
 
 impl Ord for Node {
@@ -83,16 +84,19 @@ impl Node {
                 direction: self.direction,
                 position: forward_pos,
                 cost: self.cost + 1,
+                distance: self.distance + 1,
             },
             Node {
                 direction: clockwise,
                 position: clockwise_pos,
                 cost: self.cost + 1001,
+                distance: self.distance + 1,
             },
             Node {
                 direction: anticlockwise,
                 position: anticlockwise_pos,
                 cost: self.cost + 1001,
+                distance: self.distance + 1,
             },
         ]
         .into_iter()
@@ -104,7 +108,7 @@ impl Node {
     }
 }
 
-fn score(map: &[Vec<Tile>]) -> Option<u64> {
+fn score(map: &[Vec<Tile>]) -> Option<(u64, u64)> {
     let start = map
         .iter()
         .enumerate()
@@ -137,13 +141,14 @@ fn score(map: &[Vec<Tile>]) -> Option<u64> {
         direction: Direction::East,
         position: start,
         cost: 0,
+        distance: 0,
     }]);
 
     let mut visited = HashSet::new();
 
     while let Some(node) = queue.pop() {
         if node.position == end {
-            return Some(node.cost);
+            return Some((node.cost, node.distance));
         }
 
         if !visited.insert((node.position, node.direction)) {
@@ -152,6 +157,47 @@ fn score(map: &[Vec<Tile>]) -> Option<u64> {
 
         queue.extend(node.next_nodes(map));
     }
+
+    None
+}
+
+fn seats(map: &[Vec<Tile>], max_distance: u64) -> Option<u64> {
+    let start = map
+        .iter()
+        .enumerate()
+        .find_map(|(y, row)| {
+            row.iter().enumerate().find_map(|(x, tile)| {
+                if *tile == Tile::Start {
+                    Some((y as isize, x as isize))
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap();
+
+    let end = map
+        .iter()
+        .enumerate()
+        .find_map(|(y, row)| {
+            row.iter().enumerate().find_map(|(x, tile)| {
+                if *tile == Tile::End {
+                    Some((y as isize, x as isize))
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap();
+
+    let mut seats = HashSet::from([Node {
+        direction: Direction::East,
+        position: start,
+        cost: 0,
+        distance: 0,
+    }]);
+
+    // Do a DFS that is capped to max_distance
 
     None
 }
@@ -173,7 +219,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let part_one = score(&map).unwrap();
+    let (part_one, max_distance) = score(&map).unwrap();
 
     println!("{part_one}");
 }
