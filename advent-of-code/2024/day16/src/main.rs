@@ -45,8 +45,7 @@ struct Node {
     direction: Direction,
     position: (isize, isize),
     cost: u64,
-
-    path: HashSet<(u8, u8)>,
+    path: HashSet<((u8, u8), Direction)>,
 }
 
 impl Ord for Node {
@@ -84,36 +83,50 @@ impl Node {
         let mut clockwise_path = self.path.clone();
         let mut anticlockwise_path = self.path.clone();
 
-        forward_path.insert((forward_pos.0 as u8, forward_pos.1 as u8));
-        clockwise_path.insert((clockwise_pos.0 as u8, clockwise_pos.1 as u8));
-        anticlockwise_path.insert((anticlockwise_pos.0 as u8, anticlockwise_pos.1 as u8));
+        let forward_fresh =
+            forward_path.insert(((forward_pos.0 as u8, forward_pos.1 as u8), self.direction));
+        let clockwise_fresh =
+            clockwise_path.insert(((clockwise_pos.0 as u8, clockwise_pos.1 as u8), clockwise));
+        let anticlockwise_fresh = anticlockwise_path.insert((
+            (anticlockwise_pos.0 as u8, anticlockwise_pos.1 as u8),
+            anticlockwise,
+        ));
 
-        [
-            Node {
+        let mut nodes = Vec::new();
+
+        if forward_fresh {
+            nodes.push(Node {
                 direction: self.direction,
                 position: forward_pos,
                 cost: self.cost + 1,
                 path: forward_path,
-            },
-            Node {
+            });
+        }
+
+        if clockwise_fresh {
+            nodes.push(Node {
                 direction: clockwise,
                 position: clockwise_pos,
                 cost: self.cost + 1001,
                 path: clockwise_path,
-            },
-            Node {
+            });
+        }
+
+        if anticlockwise_fresh {
+            nodes.push(Node {
                 direction: anticlockwise,
                 position: anticlockwise_pos,
                 cost: self.cost + 1001,
                 path: anticlockwise_path,
-            },
-        ]
-        .into_iter()
-        .filter(|node| {
-            map.get(node.position.0 as usize)
-                .is_some_and(|row| row.get(node.position.1 as usize).is_some())
-        })
-        .filter(|node| map[node.position.0 as usize][node.position.1 as usize] != Tile::Wall)
+            });
+        }
+        nodes
+            .into_iter()
+            .filter(|node| {
+                map.get(node.position.0 as usize)
+                    .is_some_and(|row| row.get(node.position.1 as usize).is_some())
+            })
+            .filter(|node| map[node.position.0 as usize][node.position.1 as usize] != Tile::Wall)
     }
 }
 
@@ -150,7 +163,7 @@ fn score(map: &[Vec<Tile>]) -> Option<u64> {
         direction: Direction::East,
         position: start,
         cost: 0,
-        path: HashSet::from([(start.0 as u8, start.1 as u8)]),
+        path: HashSet::from([((start.0 as u8, start.1 as u8), Direction::East)]),
     }]);
 
     let mut visited = HashSet::new();
@@ -170,7 +183,49 @@ fn score(map: &[Vec<Tile>]) -> Option<u64> {
     None
 }
 
-fn seats(map: &[Vec<Tile>], max_cost: u64) -> usize {
+fn seats(
+    map: &[Vec<Tile>],
+    max_cost: u64,
+    start: Node,
+    end: (isize, isize),
+) -> HashSet<((u8, u8), Direction)> {
+    let mut travelled = HashSet::new();
+
+    for neighbour in start
+        .next_nodes(map)
+        .filter(|neighbour| neighbour.cost <= max_cost)
+    {
+        if neighbour.position == end {
+            return neighbour.path;
+        } else {
+            travelled.extend(seats(map, max_cost, neighbour, end));
+        }
+    }
+
+    travelled
+}
+
+fn main() {
+    let map = io::stdin()
+        .lines()
+        .map(Result::unwrap)
+        .map(|row| {
+            row.chars()
+                .map(|char| match char {
+                    'S' => Tile::Start,
+                    'E' => Tile::End,
+                    '.' => Tile::Empty,
+                    '#' => Tile::Wall,
+                    _ => panic!("Invalid tile {char}!"),
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    let part_one = score(&map).unwrap();
+
+    println!("{part_one}");
+
     let start = map
         .iter()
         .enumerate()
@@ -199,56 +254,21 @@ fn seats(map: &[Vec<Tile>], max_cost: u64) -> usize {
         })
         .unwrap();
 
-    let start_node = Node {
-        direction: Direction::East,
-        position: start,
-        cost: 0,
-        path: HashSet::from([(start.0 as u8, start.1 as u8)]),
-    };
-
-    let mut travelled = HashSet::new();
-
-    let mut queue = BinaryHeap::from([start_node]);
-
-    while let Some(node) = queue.pop() {
-        let neighbours = node
-            .next_nodes(map)
-            .filter(|neighbour| neighbour.cost <= max_cost);
-
-        for neighbour in neighbours {
-            if neighbour.position == end {
-                travelled.extend(neighbour.path);
-            } else {
-                queue.push(neighbour);
-            }
-        }
-    }
-
-    travelled.len()
-}
-
-fn main() {
-    let map = io::stdin()
-        .lines()
-        .map(Result::unwrap)
-        .map(|row| {
-            row.chars()
-                .map(|char| match char {
-                    'S' => Tile::Start,
-                    'E' => Tile::End,
-                    '.' => Tile::Empty,
-                    '#' => Tile::Wall,
-                    _ => panic!("Invalid tile {char}!"),
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
-
-    let part_one = score(&map).unwrap();
-
-    println!("{part_one}");
-
-    let part_two = seats(&map, part_one);
+    let part_two = seats(
+        &map,
+        part_one,
+        Node {
+            direction: Direction::East,
+            position: start,
+            cost: 0,
+            path: HashSet::from([((start.0 as u8, start.1 as u8), Direction::East)]),
+        },
+        end,
+    )
+    .iter()
+    .map(|(pos, _)| pos)
+    .collect::<HashSet<_>>()
+    .len();
 
     println!("{part_two}");
 }
