@@ -40,12 +40,13 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Node {
     direction: Direction,
     position: (isize, isize),
     cost: u64,
-    distance: u64,
+
+    path: HashSet<(u8, u8)>,
 }
 
 impl Ord for Node {
@@ -79,24 +80,32 @@ impl Node {
             self.position.1 + anticlockwise.vector().1,
         );
 
+        let mut forward_path = self.path.clone();
+        let mut clockwise_path = self.path.clone();
+        let mut anticlockwise_path = self.path.clone();
+
+        forward_path.insert((forward_pos.0 as u8, forward_pos.1 as u8));
+        clockwise_path.insert((clockwise_pos.0 as u8, clockwise_pos.1 as u8));
+        anticlockwise_path.insert((anticlockwise_pos.0 as u8, anticlockwise_pos.1 as u8));
+
         [
             Node {
                 direction: self.direction,
                 position: forward_pos,
                 cost: self.cost + 1,
-                distance: self.distance + 1,
+                path: forward_path,
             },
             Node {
                 direction: clockwise,
                 position: clockwise_pos,
                 cost: self.cost + 1001,
-                distance: self.distance + 1,
+                path: clockwise_path,
             },
             Node {
                 direction: anticlockwise,
                 position: anticlockwise_pos,
                 cost: self.cost + 1001,
-                distance: self.distance + 1,
+                path: anticlockwise_path,
             },
         ]
         .into_iter()
@@ -108,7 +117,7 @@ impl Node {
     }
 }
 
-fn score(map: &[Vec<Tile>]) -> Option<(u64, u64)> {
+fn score(map: &[Vec<Tile>]) -> Option<u64> {
     let start = map
         .iter()
         .enumerate()
@@ -141,14 +150,14 @@ fn score(map: &[Vec<Tile>]) -> Option<(u64, u64)> {
         direction: Direction::East,
         position: start,
         cost: 0,
-        distance: 0,
+        path: HashSet::from([(start.0 as u8, start.1 as u8)]),
     }]);
 
     let mut visited = HashSet::new();
 
     while let Some(node) = queue.pop() {
         if node.position == end {
-            return Some((node.cost, node.distance));
+            return Some(node.cost);
         }
 
         if !visited.insert((node.position, node.direction)) {
@@ -161,7 +170,7 @@ fn score(map: &[Vec<Tile>]) -> Option<(u64, u64)> {
     None
 }
 
-fn seats(map: &[Vec<Tile>], max_distance: u64) -> Option<u64> {
+fn seats(map: &[Vec<Tile>], max_cost: u64) -> usize {
     let start = map
         .iter()
         .enumerate()
@@ -190,16 +199,32 @@ fn seats(map: &[Vec<Tile>], max_distance: u64) -> Option<u64> {
         })
         .unwrap();
 
-    let mut seats = HashSet::from([Node {
+    let start_node = Node {
         direction: Direction::East,
         position: start,
         cost: 0,
-        distance: 0,
-    }]);
+        path: HashSet::from([(start.0 as u8, start.1 as u8)]),
+    };
 
-    // Do a DFS that is capped to max_distance
+    let mut travelled = HashSet::new();
 
-    None
+    let mut queue = BinaryHeap::from([start_node]);
+
+    while let Some(node) = queue.pop() {
+        let neighbours = node
+            .next_nodes(map)
+            .filter(|neighbour| neighbour.cost <= max_cost);
+
+        for neighbour in neighbours {
+            if neighbour.position == end {
+                travelled.extend(neighbour.path);
+            } else {
+                queue.push(neighbour);
+            }
+        }
+    }
+
+    travelled.len()
 }
 
 fn main() {
@@ -219,7 +244,11 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let (part_one, max_distance) = score(&map).unwrap();
+    let part_one = score(&map).unwrap();
 
     println!("{part_one}");
+
+    let part_two = seats(&map, part_one);
+
+    println!("{part_two}");
 }
