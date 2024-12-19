@@ -189,20 +189,26 @@ fn seats(
     start: Node,
     end: (isize, isize),
 ) -> HashSet<((u8, u8), Direction)> {
-    let mut travelled = HashSet::new();
+    let mut queue = Vec::from([start]);
 
-    for neighbour in start
-        .next_nodes(map)
-        .filter(|neighbour| neighbour.cost <= max_cost)
-    {
-        if neighbour.position == end {
-            return neighbour.path;
-        } else {
-            travelled.extend(seats(map, max_cost, neighbour, end));
+    let mut visited = HashSet::new();
+    let mut path = HashSet::new();
+
+    while let Some(node) = queue.pop() {
+        if node.position == end {
+            path.extend(node.path);
+            continue;
+        }
+
+        if visited.insert((node.position, node.direction)) {
+            queue.extend(
+                node.next_nodes(map)
+                    .filter(|neighbour| neighbour.cost <= max_cost),
+            );
         }
     }
 
-    travelled
+    path
 }
 
 fn main() {
