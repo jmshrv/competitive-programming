@@ -1,4 +1,4 @@
-use std::{io, u64};
+use std::io;
 
 use itertools::Itertools;
 
@@ -15,12 +15,7 @@ struct Computer<'a> {
 }
 
 impl Computer<'_> {
-    fn new<'a>(
-        register_a: u64,
-        register_b: u64,
-        register_c: u64,
-        program: &'a [u8],
-    ) -> Computer<'a> {
+    fn new(register_a: u64, register_b: u64, register_c: u64, program: &[u8]) -> Computer<'_> {
         let program_len = program.len();
 
         Computer {
