@@ -1,28 +1,35 @@
-use std::io;
+use std::{io, u64};
 
-use itertools::Itertools;
+use itertools::{concat, Itertools};
 
-struct Computer {
+struct Computer<'a> {
     register_a: u64,
     register_b: u64,
     register_c: u64,
 
     pc: usize,
 
-    program: Vec<u8>,
+    program: &'a [u8],
 
     output: Vec<u8>,
 }
 
-impl Computer {
-    fn new(register_a: u64, register_b: u64, register_c: u64, program: Vec<u8>) -> Self {
-        Self {
+impl Computer<'_> {
+    fn new<'a>(
+        register_a: u64,
+        register_b: u64,
+        register_c: u64,
+        program: &'a [u8],
+    ) -> Computer<'a> {
+        let program_len = program.len();
+
+        Computer {
             register_a,
             register_b,
             register_c,
             pc: 0,
             program,
-            output: Vec::new(),
+            output: Vec::with_capacity(program_len),
         }
     }
 
@@ -127,19 +134,48 @@ fn parse_program(program_str: &str) -> Vec<u8> {
         .collect()
 }
 
+fn solve_part_two(
+    register_a_goal: u64,
+    register_b: u64,
+    register_c: u64,
+    program: &[u8],
+    i: usize,
+) -> Option<u64> {
+    for k in 0..8 {
+        let a = register_a_goal << 3 | k;
+
+        let mut computer = Computer::new(a, register_b, register_c, program);
+
+        computer.run();
+
+        if computer.output == program[i..] {
+            if i == 0 {
+                return Some(a);
+            }
+
+            if let Some(result) = solve_part_two(a, register_b, register_c, program, i - 1) {
+                return Some(result);
+            }
+        }
+    }
+
+    None
+}
+
 fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
 
     let (registers_str, program_str) = input.split_once("\n\n").unwrap();
 
-    let (register_a, register_b, register_c) = parse_registers(registers_str);
+    let (part_one_register_a, register_b, register_c) = parse_registers(registers_str);
     let program = parse_program(program_str);
 
-    let mut computer = Computer::new(register_a, register_b, register_c, program);
+    let mut part_one_computer =
+        Computer::new(part_one_register_a, register_b, register_c, &program);
 
-    computer.run();
+    part_one_computer.run();
 
-    let part_one = computer
+    let part_one = part_one_computer
         .output
         .iter()
         .map(|byte| char::from_digit(*byte as u32, 10).unwrap())
@@ -147,4 +183,8 @@ fn main() {
         .collect::<String>();
 
     println!("{part_one}");
+
+    let part_two = solve_part_two(0, register_b, register_c, &program, program.len() - 1).unwrap();
+
+    println!("{part_two}");
 }
