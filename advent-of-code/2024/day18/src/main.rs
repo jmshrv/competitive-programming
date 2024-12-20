@@ -3,7 +3,7 @@ use std::{
     io,
 };
 
-fn bfs(map: &HashSet<(u8, u8)>) -> u16 {
+fn bfs(map: &HashSet<&(u8, u8)>) -> Option<u16> {
     let max_size = 70;
     let end = (max_size, max_size);
 
@@ -16,7 +16,7 @@ fn bfs(map: &HashSet<(u8, u8)>) -> u16 {
         }
 
         if position == end {
-            return steps;
+            return Some(steps);
         }
 
         let neighbours = [
@@ -32,10 +32,12 @@ fn bfs(map: &HashSet<(u8, u8)>) -> u16 {
         queue.extend(neighbours);
     }
 
-    panic!("Failed to find end!")
+    None
 }
 
 fn main() {
+    let initial_num_bytes = 1024;
+
     let input = io::stdin()
         .lines()
         .map(Result::unwrap)
@@ -45,9 +47,20 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let map = input.clone().into_iter().take(1024).collect();
+    let mut map = input.iter().take(initial_num_bytes).collect();
 
-    let part_one = bfs(&map);
+    let part_one = bfs(&map).unwrap();
 
     println!("{part_one}");
+
+    for byte in &input[initial_num_bytes..] {
+        map.insert(byte);
+
+        if bfs(&map).is_none() {
+            println!("{},{}", byte.0, byte.1);
+            return;
+        }
+    }
+
+    panic!("Failed to find part 2!")
 }
