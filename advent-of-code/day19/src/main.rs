@@ -32,16 +32,18 @@ fn main() {
     let inventory = inventory_str.split(", ").collect::<Vec<_>>();
     let designs = designs_str.lines().collect::<Vec<_>>();
 
+    let mut cache = HashMap::new();
+
     let part_one = designs
         .iter()
-        .filter(|design| valid_designs(design, &inventory, &mut HashMap::new()) != 0)
+        .filter(|design| valid_designs(design, &inventory, &mut cache) != 0)
         .count();
 
     println!("{part_one}");
 
     let part_two: u64 = designs
         .iter()
-        .map(|design| valid_designs(design, &inventory, &mut HashMap::new()))
+        .map(|design| valid_designs(design, &inventory, &mut cache))
         .sum();
 
     println!("{part_two}");
