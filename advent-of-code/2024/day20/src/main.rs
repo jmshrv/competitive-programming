@@ -113,4 +113,8 @@ fn main() {
     let part_one = cheat_savings(&path, 2, 100);
 
     println!("{part_one}");
+
+    let part_two = cheat_savings(&path, 20, 100);
+
+    println!("{part_two}");
 }
