@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     io,
 };
 
@@ -25,7 +25,7 @@ fn parse_line(line: &str) -> Vec<Tile> {
         .collect()
 }
 
-fn bfs(map: &[Vec<Tile>]) -> Vec<(usize, usize)> {
+fn bfs(map: &[Vec<Tile>]) -> HashMap<(usize, usize), u64> {
     let start = map
         .iter()
         .enumerate()
@@ -36,25 +36,21 @@ fn bfs(map: &[Vec<Tile>]) -> Vec<(usize, usize)> {
         })
         .unwrap();
 
-    let mut queue = VecDeque::from([(start, vec![start])]);
-    let mut visited = HashSet::new();
+    let mut queue = VecDeque::from([(start, 0)]);
+    let mut visited = HashMap::new();
 
-    while let Some((position, mut path)) = queue.pop_front() {
-        if !visited.insert(position) {
+    while let Some((position, distance)) = queue.pop_front() {
+        if visited.contains_key(&position) {
             continue;
         }
 
-        if map[position.0][position.1] == Tile::End {
-            return path;
-        }
-
-        path.push(position);
+        visited.insert(position, distance);
 
         let neighbours = [
-            ((position.0 - 1, position.1), path.clone()),
-            ((position.0 + 1, position.1), path.clone()),
-            ((position.0, position.1 - 1), path.clone()),
-            ((position.0, position.1 + 1), path.clone()),
+            ((position.0 - 1, position.1), distance + 1),
+            ((position.0 + 1, position.1), distance + 1),
+            ((position.0, position.1 - 1), distance + 1),
+            ((position.0, position.1 + 1), distance + 1),
         ]
         .into_iter()
         .filter_map(|neighbour| {
@@ -67,14 +63,13 @@ fn bfs(map: &[Vec<Tile>]) -> Vec<(usize, usize)> {
         queue.extend(neighbours);
     }
 
-    panic!("No path from start to end!");
+    visited
 }
 
 fn cheat_savings(
-    map: &HashSet<(usize, usize)>,
-    path: &[(usize, usize)],
-    max_cheat: usize,
-    min_savings: usize,
+    distances: &HashMap<(usize, usize), u64>,
+    max_cheat: u64,
+    min_savings: u64,
 ) -> usize {
     // path.iter()
     //     .enumerate()
@@ -87,22 +82,17 @@ fn cheat_savings(
 
     let mut count = 0;
 
-    for (i, p1) in map.iter().enumerate() {
-        for p2 in map.iter().skip(i + 1) {
-            let distance = p1.0.abs_diff(p2.0) + p1.1.abs_diff(p2.1);
+    for (i, (p1, p1_dist)) in distances.iter().enumerate() {
+        for (p2, p2_dist) in distances.iter().skip(i + 1) {
+            let distance = (p1.0.abs_diff(p2.0) + p1.1.abs_diff(p2.1)) as u64;
 
             if distance <= max_cheat {
-                let p1_dist = path.iter().position(|pos| pos == p1);
-                let p2_dist = path.iter().position(|pos| pos == p2);
-
-                if let (Some(p1_dist), Some(p2_dist)) = (p1_dist, p2_dist) {
-                    if p1_dist
-                        .abs_diff(p2_dist)
-                        .checked_sub(distance)
-                        .is_some_and(|saved| saved >= min_savings)
-                    {
-                        count += 1;
-                    }
+                if p1_dist
+                    .abs_diff(*p2_dist)
+                    .checked_sub(distance)
+                    .is_some_and(|saved| saved >= min_savings)
+                {
+                    count += 1;
                 }
             }
         }
@@ -120,17 +110,7 @@ fn main() {
 
     let path = bfs(&input);
 
-    let map = input
-        .iter()
-        .enumerate()
-        .flat_map(|(y, row)| {
-            row.iter()
-                .enumerate()
-                .filter_map(move |(x, tile)| (*tile != Tile::Wall).then_some((y, x)))
-        })
-        .collect();
-
-    let part_one = cheat_savings(&map, &path, 2, 64);
+    let part_one = cheat_savings(&path, 2, 100);
 
     println!("{part_one}");
 }
