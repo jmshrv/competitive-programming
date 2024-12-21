@@ -1,9 +1,7 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, VecDeque},
     io,
 };
-
-use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Tile {
@@ -71,29 +69,19 @@ fn cheat_savings(
     max_cheat: u64,
     min_savings: u64,
 ) -> usize {
-    // path.iter()
-    //     .enumerate()
-    //     .cartesian_product(path.iter().enumerate().skip(1))
-    //     .filter(|((_, p1), (_, p2))| p1 != p2)
-    //     .filter(|((_, p1), (_, p2))| p1.0.abs_diff(p2.0) + p1.1.abs_diff(p2.1) == max_cheat)
-    //     .map(|((dist1, _), (dist2, _))| dist1.abs_diff(dist2) - max_cheat)
-    //     .filter(|savings| *savings >= min_savings)
-    //     .count()
-
     let mut count = 0;
 
     for (i, (p1, p1_dist)) in distances.iter().enumerate() {
         for (p2, p2_dist) in distances.iter().skip(i + 1) {
             let distance = (p1.0.abs_diff(p2.0) + p1.1.abs_diff(p2.1)) as u64;
 
-            if distance <= max_cheat {
-                if p1_dist
+            if distance <= max_cheat
+                && p1_dist
                     .abs_diff(*p2_dist)
                     .checked_sub(distance)
                     .is_some_and(|saved| saved >= min_savings)
-                {
-                    count += 1;
-                }
+            {
+                count += 1;
             }
         }
     }
