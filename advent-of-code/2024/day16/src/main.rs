@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashSet},
-    io, u64,
+    collections::{BinaryHeap, HashMap, HashSet},
+    io,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -38,6 +38,15 @@ impl Direction {
             Direction::West => (0, -1),
         }
     }
+
+    fn opposite(&self) -> Self {
+        match self {
+            Direction::North => Direction::South,
+            Direction::East => Direction::West,
+            Direction::South => Direction::North,
+            Direction::West => Direction::East,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,7 +54,6 @@ struct Node {
     direction: Direction,
     position: (isize, isize),
     cost: u64,
-    path: HashSet<((u8, u8), Direction)>,
 }
 
 impl Ord for Node {
@@ -61,66 +69,64 @@ impl PartialOrd for Node {
 }
 
 impl Node {
-    fn next_nodes<'a>(&self, map: &'a [Vec<Tile>]) -> impl Iterator<Item = Node> + use<'_, 'a> {
-        let forward_pos = (
-            self.position.0 + self.direction.vector().0,
-            self.position.1 + self.direction.vector().1,
-        );
+    fn next_nodes<'a>(
+        &self,
+        map: &'a [Vec<Tile>],
+        inverse: bool,
+    ) -> impl Iterator<Item = Node> + use<'_, 'a> {
+        let forward_pos = if inverse {
+            (
+                self.position.0 + self.direction.opposite().vector().0,
+                self.position.1 + self.direction.opposite().vector().1,
+            )
+        } else {
+            (
+                self.position.0 + self.direction.vector().0,
+                self.position.1 + self.direction.vector().1,
+            )
+        };
 
         let (clockwise, anticlockwise) = self.direction.rotated_neighbours();
 
-        let clockwise_pos = (
-            self.position.0 + clockwise.vector().0,
-            self.position.1 + clockwise.vector().1,
-        );
+        let neighbours = if inverse {
+            [
+                Node {
+                    direction: self.direction,
+                    position: forward_pos,
+                    cost: self.cost - 1,
+                },
+                Node {
+                    direction: clockwise,
+                    position: self.position,
+                    cost: self.cost - 1000,
+                },
+                Node {
+                    direction: anticlockwise,
+                    position: self.position,
+                    cost: self.cost - 1000,
+                },
+            ]
+        } else {
+            [
+                Node {
+                    direction: self.direction,
+                    position: forward_pos,
+                    cost: self.cost + 1,
+                },
+                Node {
+                    direction: clockwise,
+                    position: self.position,
+                    cost: self.cost + 1000,
+                },
+                Node {
+                    direction: anticlockwise,
+                    position: self.position,
+                    cost: self.cost + 1000,
+                },
+            ]
+        };
 
-        let anticlockwise_pos = (
-            self.position.0 + anticlockwise.vector().0,
-            self.position.1 + anticlockwise.vector().1,
-        );
-
-        let mut forward_path = self.path.clone();
-        let mut clockwise_path = self.path.clone();
-        let mut anticlockwise_path = self.path.clone();
-
-        let forward_fresh =
-            forward_path.insert(((forward_pos.0 as u8, forward_pos.1 as u8), self.direction));
-        let clockwise_fresh =
-            clockwise_path.insert(((clockwise_pos.0 as u8, clockwise_pos.1 as u8), clockwise));
-        let anticlockwise_fresh = anticlockwise_path.insert((
-            (anticlockwise_pos.0 as u8, anticlockwise_pos.1 as u8),
-            anticlockwise,
-        ));
-
-        let mut nodes = Vec::new();
-
-        if forward_fresh {
-            nodes.push(Node {
-                direction: self.direction,
-                position: forward_pos,
-                cost: self.cost + 1,
-                path: forward_path,
-            });
-        }
-
-        if clockwise_fresh {
-            nodes.push(Node {
-                direction: clockwise,
-                position: clockwise_pos,
-                cost: self.cost + 1001,
-                path: clockwise_path,
-            });
-        }
-
-        if anticlockwise_fresh {
-            nodes.push(Node {
-                direction: anticlockwise,
-                position: anticlockwise_pos,
-                cost: self.cost + 1001,
-                path: anticlockwise_path,
-            });
-        }
-        nodes
+        neighbours
             .into_iter()
             .filter(|node| {
                 map.get(node.position.0 as usize)
@@ -130,7 +136,7 @@ impl Node {
     }
 }
 
-fn score(map: &[Vec<Tile>]) -> Option<u64> {
+fn score(map: &[Vec<Tile>]) -> Option<(u64, HashMap<((isize, isize), Direction), u64>)> {
     let start = map
         .iter()
         .enumerate()
@@ -163,52 +169,66 @@ fn score(map: &[Vec<Tile>]) -> Option<u64> {
         direction: Direction::East,
         position: start,
         cost: 0,
-        path: HashSet::from([((start.0 as u8, start.1 as u8), Direction::East)]),
     }]);
 
-    let mut visited = HashSet::new();
+    let mut visited = HashMap::new();
 
     while let Some(node) = queue.pop() {
         if node.position == end {
-            return Some(node.cost);
+            visited.insert((node.position, node.direction), node.cost);
+            return Some((node.cost, visited));
         }
 
-        if !visited.insert((node.position, node.direction)) {
+        if visited.contains_key(&(node.position, node.direction)) {
             continue;
         }
 
-        queue.extend(node.next_nodes(map));
+        visited.insert((node.position, node.direction), node.cost);
+
+        queue.extend(node.next_nodes(map, false));
     }
 
     None
 }
 
 fn seats(
-    map: &[Vec<Tile>],
-    max_cost: u64,
-    start: Node,
-    end: (isize, isize),
-) -> HashSet<((u8, u8), Direction)> {
-    let mut queue = Vec::from([start]);
+    visited_one: &HashMap<((isize, isize), Direction), u64>,
+    start: &[Node],
+) -> HashSet<(isize, isize)> {
+    let mut queue = Vec::from(start);
 
     let mut visited = HashSet::new();
-    let mut path = HashSet::new();
 
     while let Some(node) = queue.pop() {
-        if node.position == end {
-            path.extend(node.path);
-            continue;
-        }
+        if visited_one.get(&(node.position, node.direction)) == Some(&node.cost)
+            && visited.insert((node.position, node.direction))
+        {
+            let (clockwise, anticlockwise) = node.direction.rotated_neighbours();
 
-        if visited.insert((node.position, node.direction)) {
-            queue.extend(
-                node.next_nodes(map)
-                    .filter(|neighbour| neighbour.cost <= max_cost),
-            );
+            queue.push(Node {
+                direction: clockwise,
+                position: node.position,
+                cost: node.cost - 1000,
+            });
+
+            queue.push(Node {
+                direction: anticlockwise,
+                position: node.position,
+                cost: node.cost - 1000,
+            });
+
+            queue.push(Node {
+                direction: node.direction,
+                position: (
+                    node.position.0 + node.direction.opposite().vector().0,
+                    node.position.1 + node.direction.opposite().vector().1,
+                ),
+                cost: node.cost - 1,
+            });
         }
     }
 
-    path
+    visited.into_iter().map(|(position, _)| position).collect()
 }
 
 fn main() {
@@ -228,23 +248,9 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let part_one = score(&map).unwrap();
+    let (part_one, visited) = score(&map).unwrap();
 
     println!("{part_one}");
-
-    let start = map
-        .iter()
-        .enumerate()
-        .find_map(|(y, row)| {
-            row.iter().enumerate().find_map(|(x, tile)| {
-                if *tile == Tile::Start {
-                    Some((y as isize, x as isize))
-                } else {
-                    None
-                }
-            })
-        })
-        .unwrap();
 
     let end = map
         .iter()
@@ -261,19 +267,30 @@ fn main() {
         .unwrap();
 
     let part_two = seats(
-        &map,
-        part_one,
-        Node {
-            direction: Direction::East,
-            position: start,
-            cost: 0,
-            path: HashSet::from([((start.0 as u8, start.1 as u8), Direction::East)]),
-        },
-        end,
+        &visited,
+        &[
+            Node {
+                direction: Direction::North,
+                position: end,
+                cost: part_one,
+            },
+            Node {
+                direction: Direction::East,
+                position: end,
+                cost: part_one,
+            },
+            Node {
+                direction: Direction::South,
+                position: end,
+                cost: part_one,
+            },
+            Node {
+                direction: Direction::West,
+                position: end,
+                cost: part_one,
+            },
+        ],
     )
-    .iter()
-    .map(|(pos, _)| pos)
-    .collect::<HashSet<_>>()
     .len();
 
     println!("{part_two}");
