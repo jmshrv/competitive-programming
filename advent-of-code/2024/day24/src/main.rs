@@ -139,23 +139,8 @@ fn main() {
                     Operator::Xor
                 }
         })
-        .flat_map(|invalid_gate| invalid_gate.out)
-        .sorted_by(|state_name_a, state_name_b| {
-            let state_name_a_int = state_name_a
-                .strip_prefix('z')
-                .unwrap()
-                .parse::<u8>()
-                .unwrap();
-            let state_name_b_int = state_name_b
-                .strip_prefix('z')
-                .unwrap()
-                .parse::<u8>()
-                .unwrap();
+        .flat_map(|invalid_gate| [invalid_gate.lhs, invalid_gate.rhs, invalid_gate.out])
+        .sorted();
 
-            state_name_a_int.cmp(&state_name_b_int)
-        })
-        .intersperse(",")
-        .collect::<String>();
-
-    println!("{part_two}");
+    println!("{three_bad_gates:?}");
 }
