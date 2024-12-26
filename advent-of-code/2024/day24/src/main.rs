@@ -6,6 +6,7 @@ use std::{
 
 use itertools::Itertools;
 
+#[derive(Debug, PartialEq, Eq)]
 enum Operator {
     And,
     Or,
@@ -126,4 +127,35 @@ fn main() {
         .fold(0, |acc, value| (acc << 1) | *value as u64);
 
     println!("{part_one}");
+
+    let three_bad_gates = gates
+        .iter()
+        .filter(|gate| gate.out.starts_with('z'))
+        .filter(|z_gate| {
+            z_gate.operator
+                != if z_gate.out.ends_with("45") {
+                    Operator::Or
+                } else {
+                    Operator::Xor
+                }
+        })
+        .flat_map(|invalid_gate| invalid_gate.out)
+        .sorted_by(|state_name_a, state_name_b| {
+            let state_name_a_int = state_name_a
+                .strip_prefix('z')
+                .unwrap()
+                .parse::<u8>()
+                .unwrap();
+            let state_name_b_int = state_name_b
+                .strip_prefix('z')
+                .unwrap()
+                .parse::<u8>()
+                .unwrap();
+
+            state_name_a_int.cmp(&state_name_b_int)
+        })
+        .intersperse(",")
+        .collect::<String>();
+
+    println!("{part_two}");
 }
