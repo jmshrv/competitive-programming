@@ -3,57 +3,48 @@ use std::collections::HashSet;
 struct Solution {}
 
 impl Solution {
-    pub fn is_valid_sudoku(board: Vec<Vec<char>>) -> bool {
-        for row in &board {
-            if !Solution::is_line_unique(&row) {
-                return false;
-            }
-        }
+    fn is_segment_valid<'a>(segment: impl Iterator<Item = &'a char> + Clone) -> bool {
+        let numbers_only_segment = segment.filter(|&&c| c != '.');
 
-        for column_index in 0..board.first().unwrap().len() {
-            let column = board
-                .iter()
-                .map(|row| row[column_index])
-                .collect::<Vec<_>>();
-
-            if !Solution::is_line_unique(&column) {
-                return false;
-            }
-        }
-
-        let sliced_board = board
-            .iter()
-            .map(|row| row.chunks_exact(3).collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-
-        for rows in sliced_board.chunks_exact(3) {
-            let chunked_rows = rows
-                .iter()
-                .map(|row| row.chunks_exact(3).collect::<Vec<_>>())
-                .collect::<Vec<_>>();
-
-            for i in 0..3 {
-                let square = chunked_rows
-                    .iter()
-                    .map(|chunk| chunk[i])
-                    .flatten()
-                    .collect::<Vec<_>>();
-
-                println!("{square:?}");
-            }
-        }
-        true
+        numbers_only_segment.clone().collect::<HashSet<_>>().len() == numbers_only_segment.count()
     }
 
-    fn is_line_unique(line: &[char]) -> bool {
-        let empty_spaces = line.iter().filter(|c| **c == '.').count();
-        let unique_count = line
-            .iter()
-            .filter(|c| **c != '.')
-            .collect::<HashSet<_>>()
-            .len();
+    pub fn is_valid_sudoku(board: Vec<Vec<char>>) -> bool {
+        let rows_valid = board.iter().all(|row| Self::is_segment_valid(row.iter()));
 
-        line.len() == empty_spaces + unique_count
+        if !rows_valid {
+            return false;
+        }
+
+        let board_width = board.first().expect("Empty board!").len();
+
+        let columns_valid = (0..board_width)
+            .all(|column_index| Self::is_segment_valid(board.iter().map(|row| &row[column_index])));
+
+        if !columns_valid {
+            return false;
+        }
+
+        for vertical_chunk in 0..3 {
+            for horizontal_chunk in 0..3 {
+                let starty = vertical_chunk * 3;
+                let startx = horizontal_chunk * 3;
+
+                let mut chunk = vec![];
+
+                for y in starty..starty + 3 {
+                    for x in startx..startx + 3 {
+                        chunk.push(board[y][x]);
+                    }
+                }
+
+                if !Self::is_segment_valid(chunk.iter()) {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 }
 
@@ -70,18 +61,18 @@ fn main() {
         vec!['.', '.', '.', '.', '8', '.', '.', '7', '9'],
     ]);
 
-    // let invalid = Solution::is_valid_sudoku(vec![
-    //     vec!['8', '3', '.', '.', '7', '.', '.', '.', '.'],
-    //     vec!['6', '.', '.', '1', '9', '5', '.', '.', '.'],
-    //     vec!['.', '9', '8', '.', '.', '.', '.', '6', '.'],
-    //     vec!['8', '.', '.', '.', '6', '.', '.', '.', '3'],
-    //     vec!['4', '.', '.', '8', '.', '3', '.', '.', '1'],
-    //     vec!['7', '.', '.', '.', '2', '.', '.', '.', '6'],
-    //     vec!['.', '6', '.', '.', '.', '.', '2', '8', '.'],
-    //     vec!['.', '.', '.', '4', '1', '9', '.', '.', '5'],
-    //     vec!['.', '.', '.', '.', '8', '.', '.', '7', '9'],
-    // ]);
+    let invalid = Solution::is_valid_sudoku(vec![
+        vec!['8', '3', '.', '.', '7', '.', '.', '.', '.'],
+        vec!['6', '.', '.', '1', '9', '5', '.', '.', '.'],
+        vec!['.', '9', '8', '.', '.', '.', '.', '6', '.'],
+        vec!['8', '.', '.', '.', '6', '.', '.', '.', '3'],
+        vec!['4', '.', '.', '8', '.', '3', '.', '.', '1'],
+        vec!['7', '.', '.', '.', '2', '.', '.', '.', '6'],
+        vec!['.', '6', '.', '.', '.', '.', '2', '8', '.'],
+        vec!['.', '.', '.', '4', '1', '9', '.', '.', '5'],
+        vec!['.', '.', '.', '.', '8', '.', '.', '7', '9'],
+    ]);
 
     println!("{valid}");
-    // println!("{invalid}");
+    println!("{invalid}");
 }
