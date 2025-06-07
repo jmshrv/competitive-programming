@@ -29,21 +29,13 @@ impl Solution {
             return root;
         }
 
-        let mut queue = VecDeque::from([root.clone().unwrap()]);
+        let binding = root.clone().unwrap();
+        let mut node_ref = binding.borrow_mut();
 
-        while let Some(node) = queue.pop_front() {
-            let mut node_ref = node.borrow_mut();
+        (node_ref.left, node_ref.right) = (node_ref.right.clone(), node_ref.left.clone());
 
-            (node_ref.left, node_ref.right) = (node_ref.right.clone(), node_ref.left.clone());
-
-            if let Some(left) = &node_ref.left {
-                queue.push_back(left.clone());
-            }
-
-            if let Some(right) = &node_ref.right {
-                queue.push_back(right.clone());
-            }
-        }
+        Solution::invert_tree(node_ref.left.clone());
+        Solution::invert_tree(node_ref.right.clone());
 
         root
     }
