@@ -1,14 +1,19 @@
-use std::io;
+use std::{
+    cmp::{max, min},
+    io,
+};
 
-type Position = i32;
-type Rotation = (Direction, Position);
+use itertools::Either;
 
+type Rotation = (Direction, i32);
+
+#[derive(Debug)]
 enum Direction {
     Left,
     Right,
 }
 
-fn parse_rotation(rotation_str: &str) -> Option<(Direction, Position)> {
+fn parse_rotation(rotation_str: &str) -> Option<(Direction, i32)> {
     let direction = match rotation_str.chars().next()? {
         'L' => Some(Direction::Left),
         'R' => Some(Direction::Right),
@@ -20,12 +25,28 @@ fn parse_rotation(rotation_str: &str) -> Option<(Direction, Position)> {
     Some((direction, rotation))
 }
 
-fn rotate(position: Position, rotation: &Rotation) -> Position {
+fn next_step(position: i32, rotation: &Rotation) -> i32 {
     match rotation.0 {
         Direction::Left => position - rotation.1,
         Direction::Right => position + rotation.1,
     }
-    .rem_euclid(100)
+}
+
+fn full_rotations(position: i32, rotation: &Rotation) -> usize {
+    let dest = next_step(position, rotation);
+
+    let range = min(dest, position)..=max(dest, position);
+
+    let iter = match rotation.0 {
+        Direction::Left => Either::Left(range.rev()),
+        Direction::Right => Either::Right(range),
+    };
+
+    iter
+        .skip(1) // We don't want to count the first step, only the clicks!
+        .map(|pos| pos.rem_euclid(100))
+        .filter(|pos| *pos == 0)
+        .count()
 }
 
 fn main() {
@@ -39,11 +60,21 @@ fn main() {
     let part1_answer = input
         .iter()
         .fold((0, 50), |(ans, position), rotation| {
-            let new_position = rotate(position, rotation);
+            let new_position = next_step(position, rotation).rem_euclid(100);
             let new_ans = if position == 0 { ans + 1 } else { ans };
             (new_ans, new_position)
         })
         .0;
 
     println!("{part1_answer}");
+
+    let part2_answer = input
+        .iter()
+        .fold((0, 50), |(ans, position), rotation| {
+            let new_position = next_step(position, rotation).rem_euclid(100);
+            (ans + full_rotations(position, rotation), new_position)
+        })
+        .0;
+
+    println!("{part2_answer}");
 }
