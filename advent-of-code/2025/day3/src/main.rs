@@ -1,10 +1,10 @@
 use std::io;
 
 fn max_joltage(bank: &[u64], battery_count: usize) -> u64 {
+    let mut result = 0;
+
     // Index that we last picked a battery from
     let mut last_index = 0;
-
-    let mut batteries = vec![];
 
     // The best battery is the highest (and earliest) digit that still leaves room to pick the
     // remaining batteries.
@@ -17,13 +17,11 @@ fn max_joltage(bank: &[u64], battery_count: usize) -> u64 {
             .unwrap();
 
         last_index += new_index + 1; // Do +1 to start the next search after this battery
-        batteries.push(*best_battery);
+
+        result = result * 10 + best_battery;
     }
 
-    batteries
-        .into_iter()
-        .reduce(|acc, e| acc * 10 + e)
-        .unwrap_or(0)
+    result
 }
 
 fn main() {
