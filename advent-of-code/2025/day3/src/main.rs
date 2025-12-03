@@ -6,18 +6,17 @@ fn max_joltage(bank: &[u64], battery_count: usize) -> u64 {
 
     let mut batteries = vec![];
 
+    // The best battery is the highest (and earliest) digit that still leaves room to pick the
+    // remaining batteries.
     for remaining in (0..battery_count).rev() {
-        let (new_index, best_battery) = bank[last_index..]
+        let (new_index, best_battery) = bank[last_index..bank.len() - remaining]
             .iter()
             .enumerate()
-            .filter(|(index, _)| {
-                last_index + index + remaining < bank.len()
-            })
             .rev() // Needed so that max always picks the first battery
             .max_by_key(|(_, battery)| *battery)
             .unwrap();
 
-        last_index += new_index + 1;
+        last_index += new_index + 1; // Do +1 to start the next search after this battery
         batteries.push(*best_battery);
     }
 
