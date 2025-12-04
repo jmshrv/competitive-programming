@@ -25,12 +25,12 @@ fn accessible_indices(map: &[Vec<char>]) -> impl Iterator<Item = (usize, usize)>
 fn cleanup(mut map: Vec<Vec<char>>) -> u32 {
     let mut did_do_clean = true;
     let mut removed_count = 0;
-    
+
     while did_do_clean {
         did_do_clean = false;
 
         let indices = accessible_indices(&map).collect::<Vec<_>>();
-        
+
         for (y, x) in indices {
             map[y][x] = '.';
             did_do_clean = true; // Since we found rolls to move, there still may be work to do.
