@@ -1,5 +1,7 @@
 use std::io;
 
+use itertools::Itertools;
+
 fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
 
@@ -34,4 +36,12 @@ fn main() {
         .count();
 
     println!("{part1_answer}");
+
+    let part2_answer = ranges
+        .iter()
+        .flat_map(|range| range.clone().into_iter())
+        .unique()
+        .count();
+
+    println!("{part2_answer}");
 }
