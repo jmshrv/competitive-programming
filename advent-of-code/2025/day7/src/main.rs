@@ -1,4 +1,7 @@
-use std::{collections::HashSet, io};
+use std::{
+    collections::{HashMap, HashSet},
+    io,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 enum Cell {
@@ -48,6 +51,43 @@ fn traverse(map: &[Vec<Cell>], mut position: (usize, usize), splits: &mut HashSe
     }
 }
 
+fn universes(map: &[Vec<Cell>], mut position: (usize, usize)) -> u64 {
+    let mut splits = HashMap::from([(position.1, 1)]);
+
+    while let Some(row) = map.get(position.0) {
+        let split_indices = row
+            .iter()
+            .enumerate()
+            .filter(|(_, cell)| **cell == Cell::Splitter)
+            .map(|(x, _)| x)
+            .collect::<Vec<_>>();
+
+        for split in &split_indices {
+            let Some(&current_split) = splits.get(&split) else {
+                continue;
+            };
+
+            splits
+                .entry(split - 1)
+                .and_modify(|count| *count += current_split)
+                .or_insert(current_split);
+
+            splits
+                .entry(split + 1)
+                .and_modify(|count| *count += current_split)
+                .or_insert(current_split);
+        }
+
+        for split in &split_indices {
+            splits.remove(split);
+        }
+
+        position.0 += 1;
+    }
+
+    splits.values().sum()
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
@@ -77,6 +117,8 @@ fn main() {
 
     let mut splits = HashSet::new();
     traverse(&input, start, &mut splits);
-
     println!("{}", splits.len());
+
+    let universe_count = universes(&input, start);
+    println!("{universe_count}");
 }
