@@ -23,7 +23,7 @@ fn run(junction_boxes: &[JunctionBox], connection_count: usize, part2: bool) -> 
         .take(if part2 { usize::MAX } else { connection_count })
         .collect::<Vec<_>>();
 
-    let mut circuits: Vec<HashSet<JunctionBox>> = Vec::new();
+    let mut circuits: Vec<HashSet<&JunctionBox>> = Vec::new();
 
     for (box_a, box_b) in shortest_boxes {
         connect_boxes(&mut circuits, box_a, box_b);
@@ -42,10 +42,10 @@ fn run(junction_boxes: &[JunctionBox], connection_count: usize, part2: bool) -> 
         .product()
 }
 
-fn connect_boxes(
-    circuits: &mut Vec<HashSet<JunctionBox>>,
-    box_a: &JunctionBox,
-    box_b: &JunctionBox,
+fn connect_boxes<'a>(
+    circuits: &mut Vec<HashSet<&'a JunctionBox>>,
+    box_a: &'a JunctionBox,
+    box_b: &'a JunctionBox,
 ) {
     let circuit_a_idx = circuits.iter().position(|c| c.contains(box_a));
     let circuit_b_idx = circuits.iter().position(|c| c.contains(box_b));
@@ -57,14 +57,14 @@ fn connect_boxes(
             circuits[if a > b { a - 1 } else { a }].extend(circuit_b);
         }
         (Some(a), None) => {
-            circuits[a].insert(*box_b);
+            circuits[a].insert(box_b);
         }
         (None, Some(b)) => {
-            circuits[b].insert(*box_a);
+            circuits[b].insert(box_a);
         }
         (Some(_), Some(_)) => { /* same circuit, nothing to do */ }
         (None, None) => {
-            circuits.push(HashSet::from([*box_a, *box_b]));
+            circuits.push(HashSet::from([box_a, box_b]));
         }
     }
 }
