@@ -10,7 +10,9 @@ struct JunctionBox {
 }
 
 fn distance(from: &JunctionBox, to: &JunctionBox) -> i64 {
-    ((from.x - to.x).pow(2) + (from.y - to.y).pow(2) + (from.z - to.z).pow(2)).isqrt()
+    // No need to do a sqrt, we're just comparing to find the shortest, don't care that it's
+    // actually distance^2
+    (from.x - to.x).pow(2) + (from.y - to.y).pow(2) + (from.z - to.z).pow(2)
 }
 
 fn run(junction_boxes: &[JunctionBox], connection_count: usize, part2: bool) -> usize {
