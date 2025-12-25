@@ -1,6 +1,6 @@
 use std::io;
 
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator, ProgressStyle};
+use indicatif::ParallelProgressIterator;
 use itertools::Itertools;
 use rayon::prelude::*;
 
@@ -58,7 +58,6 @@ fn main() {
 
     println!("Generating map...");
     let mut map = vec![vec![b'.'; xmax + 1]; ymax + 1];
-    println!("Map generated!");
 
     println!("Drawing lines...");
 
@@ -87,15 +86,34 @@ fn main() {
 
     println!("Calculating part 2 answer...");
 
-    let part2_answer = input
+    let areas = input
         .iter()
         .tuple_combinations()
-        .par_bridge()
-        .progress_count(input.iter().tuple_combinations::<(_, _)>().count() as u64)
-        .filter(|(a, b)| a.points(b).all(|point| map[point.y][point.x] != b'.'))
-        .map(|(a, b)| a.area(b))
-        .max()
-        .unwrap();
+        .sorted_by(|(aa, ab), (ba, bb)| aa.area(ab).cmp(&ba.area(bb)))
+        .rev()
+        .collect::<Vec<_>>();
 
-    println!("{part2_answer}");
+    let part2_answer = areas
+        .par_iter()
+        .progress()
+        .find_first(|(a, b)| {
+            let x_min = a.x.min(b.x);
+            let x_max = a.x.max(b.x);
+            let y_min = a.y.min(b.y);
+            let y_max = a.y.max(b.y);
+
+            (y_min..=y_max).all(|y| {
+                let row_slice = &map[y][x_min..=x_max];
+                memchr::memchr(b'.', row_slice).is_none()
+            })
+        })
+        .unwrap();
+    // .par_bridge()
+    // .progress_count(input.iter().tuple_combinations::<(_, _)>().count() as u64)
+    // .filter(|(a, b)| a.points(b).all(|point| map[point.y][point.x] != b'.'))
+    // .map(|(a, b)| a.area(b))
+    // .max()
+    // .unwrap();
+
+    println!("{}", part2_answer.0.area(part2_answer.1));
 }

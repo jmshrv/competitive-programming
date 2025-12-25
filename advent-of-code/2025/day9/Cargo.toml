@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 indicatif = { version = "0.18.3", features = ["rayon"] }
 itertools = "0.14.0"
+memchr = "2.7.6"
 rayon = "1.11.0"
