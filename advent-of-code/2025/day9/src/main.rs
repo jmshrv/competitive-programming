@@ -108,12 +108,6 @@ fn main() {
             })
         })
         .unwrap();
-    // .par_bridge()
-    // .progress_count(input.iter().tuple_combinations::<(_, _)>().count() as u64)
-    // .filter(|(a, b)| a.points(b).all(|point| map[point.y][point.x] != b'.'))
-    // .map(|(a, b)| a.area(b))
-    // .max()
-    // .unwrap();
 
     println!("{}", part2_answer.0.area(part2_answer.1));
 }
