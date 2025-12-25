@@ -1,0 +1,80 @@
+use std::{collections::HashSet, env, io};
+
+use itertools::Itertools;
+
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+struct JunctionBox {
+    x: i64,
+    y: i64,
+    z: i64,
+}
+
+fn distance(from: &JunctionBox, to: &JunctionBox) -> i64 {
+    ((from.x - to.x).pow(2) + (from.y - to.y).pow(2) + (from.z - to.z).pow(2)).isqrt()
+}
+
+fn connect(junction_boxes: &[JunctionBox], connection_count: usize) -> usize {
+    let shortest_boxes = junction_boxes
+        .iter()
+        .tuple_combinations()
+        .sorted_unstable_by(|(aa, ab), (ba, bb)| distance(aa, ab).cmp(&distance(ba, bb)))
+        .take(connection_count)
+        .collect::<Vec<_>>();
+
+    let mut circuits: Vec<HashSet<JunctionBox>> = Vec::new();
+
+    for (box_a, box_b) in shortest_boxes {
+        let circuit_a_idx = circuits.iter().position(|c| c.contains(box_a));
+        let circuit_b_idx = circuits.iter().position(|c| c.contains(box_b));
+
+        match (circuit_a_idx, circuit_b_idx) {
+            (Some(a), Some(b)) if a != b => {
+                // Merge circuits! Remove one and add its contents to the other
+                let circuit_b = circuits.remove(b);
+                circuits[if a > b { a - 1 } else { a }].extend(circuit_b);
+            }
+            (Some(a), None) => {
+                circuits[a].insert(*box_b);
+            }
+            (None, Some(b)) => {
+                circuits[b].insert(*box_a);
+            }
+            (Some(_), Some(_)) => { /* same circuit, nothing to do */ }
+            (None, None) => {
+                circuits.push(HashSet::from([*box_a, *box_b]));
+            }
+        }
+    }
+
+    circuits
+        .iter()
+        .map(|circuit| circuit.len())
+        .sorted_unstable()
+        .rev()
+        .take(3)
+        .product()
+}
+
+fn main() {
+    let input = io::stdin()
+        .lines()
+        .map(Result::unwrap)
+        .map(|line| {
+            let (x_str, y_str, z_str) = line.split(',').collect_tuple().unwrap();
+
+            JunctionBox {
+                x: x_str.parse().unwrap(),
+                y: y_str.parse().unwrap(),
+                z: z_str.parse().unwrap(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    // who needs clap when you can do it this way
+    let (_, connection_count_str) = env::args().collect_tuple().unwrap();
+    let connection_count = connection_count_str.parse::<usize>().unwrap();
+
+    let part1_answer = connect(&input, connection_count);
+
+    println!("{part1_answer}");
+}
