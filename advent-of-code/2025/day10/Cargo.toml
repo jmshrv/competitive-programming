@@ -1,0 +1,8 @@
+[package]
+name = "day10"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lazy-regex = "3.4.2"
+regex = "1.12.2"
