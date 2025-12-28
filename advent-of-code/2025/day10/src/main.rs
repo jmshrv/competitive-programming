@@ -5,15 +5,16 @@ use std::{
 
 use lazy_regex::regex;
 
+#[derive(Debug)]
 struct Machine {
     indicator_lights: Vec<bool>,
     switches: Vec<Vec<usize>>,
-    joltages: Vec<usize>,
+    joltages: Vec<u64>,
 }
 
-struct SearchState {
+struct SearchState<T> {
     depth: u64,
-    indicator_lights: Vec<bool>,
+    state: Vec<T>,
 }
 
 fn parse_line(line: &str) -> Machine {
@@ -58,25 +59,25 @@ fn parse_line(line: &str) -> Machine {
     }
 }
 
-fn button_presses(machine: &Machine) -> u64 {
+fn light_presses(machine: &Machine) -> u64 {
     let mut queue = VecDeque::from([SearchState {
         depth: 0,
-        indicator_lights: vec![false; machine.indicator_lights.len()],
+        state: vec![false; machine.indicator_lights.len()],
     }]);
 
     let mut seen = HashSet::new();
 
     while let Some(state) = queue.pop_front() {
-        if state.indicator_lights == machine.indicator_lights {
+        if state.state == machine.indicator_lights {
             return state.depth;
         }
 
-        if !seen.insert(state.indicator_lights.clone()) {
+        if !seen.insert(state.state.clone()) {
             continue;
         }
 
         for switch in &machine.switches {
-            let mut new_lights = state.indicator_lights.clone();
+            let mut new_lights = state.state.clone();
 
             for &idx in switch {
                 new_lights[idx] = !new_lights[idx];
@@ -84,7 +85,50 @@ fn button_presses(machine: &Machine) -> u64 {
 
             queue.push_back(SearchState {
                 depth: state.depth + 1,
-                indicator_lights: new_lights,
+                state: new_lights,
+            });
+        }
+    }
+
+    unreachable!()
+}
+
+fn joltage_presses(machine: &Machine) -> u64 {
+    println!("{machine:?}");
+    let mut queue = VecDeque::from([SearchState {
+        depth: 0,
+        state: vec![0; machine.joltages.len()],
+    }]);
+
+    let mut seen = HashSet::new();
+
+    while let Some(state) = queue.pop_front() {
+        if state.state == machine.joltages {
+            return state.depth;
+        }
+
+        if !seen.insert(state.state.clone()) {
+            continue;
+        }
+
+        for switch in &machine.switches {
+            let mut new_joltages = state.state.clone();
+
+            for &idx in switch {
+                new_joltages[idx] += 1;
+            }
+
+            if new_joltages
+                .iter()
+                .enumerate()
+                .any(|(idx, joltage)| *joltage > machine.joltages[idx])
+            {
+                continue;
+            }
+
+            queue.push_back(SearchState {
+                depth: state.depth + 1,
+                state: new_joltages,
             });
         }
     }
@@ -99,7 +143,9 @@ fn main() {
         .map(|line| parse_line(&line))
         .collect::<Vec<_>>();
 
-    let part1_answer: u64 = input.iter().map(|machine| button_presses(machine)).sum();
-
+    let part1_answer: u64 = input.iter().map(|machine| light_presses(machine)).sum();
     println!("{part1_answer}");
+
+    let part2_answer: u64 = input.iter().map(|machine| joltage_presses(machine)).sum();
+    println!("{part2_answer}");
 }
