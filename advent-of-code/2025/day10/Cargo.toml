@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+good_lp = "1.14.2"
 lazy-regex = "3.4.2"
 regex = "1.12.2"

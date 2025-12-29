@@ -3,6 +3,7 @@ use std::{
     io,
 };
 
+use good_lp::variables;
 use lazy_regex::regex;
 
 #[derive(Debug)]
@@ -94,44 +95,9 @@ fn light_presses(machine: &Machine) -> u64 {
 }
 
 fn joltage_presses(machine: &Machine) -> u64 {
-    println!("{machine:?}");
-    let mut queue = VecDeque::from([SearchState {
-        depth: 0,
-        state: vec![0; machine.joltages.len()],
-    }]);
-
-    let mut seen = HashSet::new();
-
-    while let Some(state) = queue.pop_front() {
-        if state.state == machine.joltages {
-            return state.depth;
-        }
-
-        if !seen.insert(state.state.clone()) {
-            continue;
-        }
-
-        for switch in &machine.switches {
-            let mut new_joltages = state.state.clone();
-
-            for &idx in switch {
-                new_joltages[idx] += 1;
-            }
-
-            if new_joltages
-                .iter()
-                .enumerate()
-                .any(|(idx, joltage)| *joltage > machine.joltages[idx])
-            {
-                continue;
-            }
-
-            queue.push_back(SearchState {
-                depth: state.depth + 1,
-                state: new_joltages,
-            });
-        }
-    }
+    variables! {
+      vars:  0 <= x[machine.joltages.len()] (integer)
+    };
 
     unreachable!()
 }
